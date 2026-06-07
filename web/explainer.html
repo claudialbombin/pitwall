@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pitwall — the math</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black:  #080808;
+    --carbon: #111111;
+    --panel:  #161616;
+    --border: #242424;
+    --muted:  #3a3a3a;
+    --text:   #e8e8e2;
+    --soft:   #777770;
+    --red:    #e8220a;
+    --red2:   #ff4422;
+    --yellow: #f5c400;
+    --green:  #00e87a;
+    --blue:   #4a9eff;
+    --purple: #b47fff;
+    --mono:   'DM Mono', monospace;
+    --display:'Bebas Neue', sans-serif;
+    --sans:   'DM Sans', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: var(--sans);
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.025; pointer-events: none; z-index: 999;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 2.5rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,8,8,0.92);
+    backdrop-filter: blur(16px);
+  }
+  .logo { font-family: var(--display); font-size: 1.4rem; letter-spacing: 0.08em; color: var(--text); text-decoration: none; }
+  .logo span { color: var(--red); }
+  nav { display: flex; gap: 2rem; align-items: center; }
+  nav a { font-family: var(--mono); font-size: 0.65rem; color: var(--soft); text-decoration: none; letter-spacing: 0.12em; text-transform: uppercase; transition: color 0.2s; }
+  nav a:hover { color: var(--text); }
+  .nav-cta { color: var(--text) !important; border: 1px solid var(--border); padding: 0.4rem 1rem; }
+  .nav-cta:hover { border-color: var(--red) !important; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar {
+    position: fixed; top: 0; left: 0; height: 2px;
+    background: var(--red); z-index: 200;
+    transition: width 0.1s;
+  }
+
+  /* ── SECTION LAYOUT ── */
+  .explainer-section {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .explainer-section.visible { opacity: 1; transform: none; }
+
+  /* Alternate left/right */
+  .explainer-section.flip { direction: rtl; }
+  .explainer-section.flip > * { direction: ltr; }
+
+  .section-prose {
+    padding: 5rem 3.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.5rem;
+    border-right: 1px solid var(--border);
+  }
+  .explainer-section.flip .section-prose { border-right: none; border-left: 1px solid var(--border); }
+
+  .section-visual {
+    padding: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--carbon);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Section label */
+  .s-label {
+    font-family: var(--mono); font-size: 0.6rem;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--red); margin-bottom: 0.5rem;
+  }
+  .s-num {
+    font-family: var(--display); font-size: 7rem;
+    color: var(--muted); line-height: 1; margin-bottom: -1rem;
+  }
+  .s-title {
+    font-family: var(--display); font-size: clamp(2rem, 4vw, 3.5rem);
+    line-height: 1; color: var(--text);
+  }
+  .s-body {
+    font-size: 0.9rem; color: var(--soft);
+    line-height: 1.9; max-width: 480px;
+  }
+  .s-body strong { color: var(--text); font-weight: 500; }
+  .s-body em { color: var(--yellow); font-style: normal; }
+
+  .s-eq {
+    font-family: var(--mono); font-size: 0.85rem;
+    color: var(--yellow); background: var(--panel);
+    border: 1px solid var(--border); border-left: 3px solid var(--yellow);
+    padding: 1rem 1.5rem; line-height: 2;
+  }
+  .s-eq .c { color: var(--soft); font-size: 0.7rem; }
+  .s-eq .k { color: var(--red2); }
+  .s-eq .f { color: var(--green); }
+  .s-eq .p { color: var(--purple); }
+
+  .s-link {
+    font-family: var(--mono); font-size: 0.7rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--soft); text-decoration: none;
+    border-bottom: 1px solid var(--muted); padding-bottom: 2px;
+    transition: color 0.2s, border-color 0.2s;
+    align-self: flex-start;
+  }
+  .s-link:hover { color: var(--text); border-color: var(--text); }
+
+  /* ── VISUAL: STATE SPACE ── */
+  .state-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    width: 100%;
+  }
+  .state-cell {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 0.6rem 0.4rem;
+    text-align: center;
+    font-family: var(--mono); font-size: 0.6rem;
+    color: var(--soft); letter-spacing: 0.06em;
+    transition: all 0.3s;
+    cursor: default;
+    position: relative;
+  }
+  .state-cell.highlight {
+    border-color: var(--yellow); color: var(--yellow);
+    background: rgba(245,196,0,0.08);
+  }
+  .state-cell.optimal {
+    border-color: var(--green); color: var(--green);
+    background: rgba(0,232,122,0.08);
+  }
+  .state-cell.current {
+    border-color: var(--red); color: var(--red);
+    background: rgba(232,34,10,0.1);
+    animation: pulse 1.5s ease infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(232,34,10,0.4); }
+    50%       { box-shadow: 0 0 0 6px rgba(232,34,10,0); }
+  }
+  .state-cell .cell-val { font-size: 0.75rem; color: var(--text); margin-bottom: 2px; display: block; font-weight: 500; }
+  .state-cell .cell-key { font-size: 0.55rem; color: var(--soft); }
+
+  /* ── VISUAL: BELLMAN ANIMATION ── */
+  .bellman-svg-wrap { width: 100%; position: relative; }
+
+  /* ── VISUAL: TYRE CLIFF ── */
+  .cliff-chart { width: 100%; }
+
+  /* ── VISUAL: SC OPTION ── */
+  .option-diagram {
+    width: 100%; display: flex; flex-direction: column; gap: 1rem;
+  }
+  .option-row {
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .option-label {
+    font-family: var(--mono); font-size: 0.65rem;
+    letter-spacing: 0.08em; color: var(--soft);
+    width: 80px; flex-shrink: 0;
+  }
+  .option-bar {
+    flex: 1; height: 28px; background: var(--panel);
+    border: 1px solid var(--border); position: relative; overflow: hidden;
+  }
+  .option-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    transition: width 1s ease;
+  }
+  .option-val {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    font-family: var(--mono); font-size: 0.65rem;
+  }
+
+  /* ── VISUAL: FINANCE TABLE ── */
+  .iso-table {
+    width: 100%;
+    font-family: var(--mono); font-size: 0.72rem;
+    border-collapse: collapse;
+  }
+  .iso-table tr { border-bottom: 1px solid var(--border); }
+  .iso-table tr:last-child { border-bottom: none; }
+  .iso-table td { padding: 0.75rem 0.5rem; }
+  .iso-table .f1 { color: var(--red2); }
+  .iso-table .arrow { color: var(--muted); text-align: center; }
+  .iso-table .qf { color: var(--green); }
+  .iso-table tr { opacity: 0; transform: translateX(12px); transition: all 0.4s; }
+  .iso-table tr.row-visible { opacity: 1; transform: none; }
+
+  /* ── VISUAL: MONTE CARLO ── */
+  .mc-paths { width: 100%; }
+
+  /* ── HERO (intro) ── */
+  .intro-hero {
+    min-height: 60vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 5rem 2rem;
+    border-bottom: 1px solid var(--border);
+    position: relative; overflow: hidden;
+  }
+  .intro-hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, rgba(232,34,10,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .intro-tag { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--soft); margin-bottom: 1.5rem; }
+  .intro-title { font-family: var(--display); font-size: clamp(3rem, 8vw, 7rem); line-height: 0.95; color: var(--text); margin-bottom: 2rem; }
+  .intro-title .red { color: var(--red); }
+  .intro-sub { font-family: var(--mono); font-size: 0.85rem; color: var(--soft); letter-spacing: 0.04em; line-height: 1.8; max-width: 560px; margin-bottom: 2.5rem; }
+  .intro-scroll { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); animation: bounce 2s ease infinite; }
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+
+  /* ── TOC ── */
+  .toc {
+    position: fixed; right: 1.5rem; top: 50%; transform: translateY(-50%);
+    z-index: 50; display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .toc-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--muted); cursor: pointer;
+    transition: all 0.2s; border: none; padding: 0;
+  }
+  .toc-dot:hover, .toc-dot.active { background: var(--red); transform: scale(1.5); }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 2.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono); font-size: 0.65rem; color: var(--muted); letter-spacing: 0.08em;
+  }
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--soft); }
+
+  @media (max-width: 900px) {
+    .explainer-section { grid-template-columns: 1fr; }
+    .explainer-section.flip { direction: ltr; }
+    .section-prose { border-right: none !important; border-left: none !important; padding: 3rem 1.5rem; }
+    .section-visual { min-height: 350px; }
+    .toc { display: none; }
+    nav .hide-m { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress-bar"></div>
+
+<!-- HEADER -->
+<header>
+  <a href="index.html" class="logo">PIT<span>WALL</span></a>
+  <nav>
+    <a href="index.html" class="hide-m">Home</a>
+    <a href="simulator.html" class="nav-cta">Open Simulator →</a>
+  </nav>
+</header>
+
+<!-- TABLE OF CONTENTS DOTS -->
+<nav class="toc" aria-label="Sections">
+  <button class="toc-dot active" onclick="scrollTo_(0)" title="Intro"></button>
+  <button class="toc-dot" onclick="scrollTo_(1)" title="The Problem"></button>
+  <button class="toc-dot" onclick="scrollTo_(2)" title="State Space"></button>
+  <button class="toc-dot" onclick="scrollTo_(3)" title="Bellman Equation"></button>
+  <button class="toc-dot" onclick="scrollTo_(4)" title="Tyre Model"></button>
+  <button class="toc-dot" onclick="scrollTo_(5)" title="Safety Car Option"></button>
+  <button class="toc-dot" onclick="scrollTo_(6)" title="Finance Link"></button>
+  <button class="toc-dot" onclick="scrollTo_(7)" title="Monte Carlo"></button>
+</nav>
+
+<!-- INTRO HERO -->
+<section class="intro-hero" id="sec-0">
+  <p class="intro-tag">// a mathematical walkthrough</p>
+  <h1 class="intro-title">THE MATH<br>BEHIND THE<br><span class="red">PIT WALL</span></h1>
+  <p class="intro-sub">
+    Eight sections. From raw intuition to Bellman equations,
+    Gaussian Processes, and Bayesian safety car models.
+    No prerequisites — just curiosity.
+  </p>
+  <span class="intro-scroll">↓ scroll to begin</span>
+</section>
+
+<!-- ── SECTION 1: THE DECISION PROBLEM ── -->
+<section class="explainer-section" id="sec-1">
+  <div class="section-prose">
+    <p class="s-label">// 01 · the decision problem</p>
+    <div class="s-num">01</div>
+    <h2 class="s-title">Every lap, one question.</h2>
+    <p class="s-body">
+      Every lap of every race, a Formula 1 strategist faces a binary choice:
+      <em>pit now</em>, or <em>stay out</em>. It sounds trivial.
+      It is not.
+    </p>
+    <p class="s-body">
+      The decision interacts with tyre degradation (non-linear, compound-specific),
+      gap to cars ahead and behind, the <strong>unknown</strong> probability of a
+      safety car neutralising the pit window, and every future decision between
+      now and the chequered flag.
+    </p>
+    <p class="s-body">
+      This is a <em>sequential decision problem under uncertainty</em> —
+      precisely the class of problems that Markov Decision Processes were
+      invented to solve. And precisely the class of problems that quant
+      traders solve every day.
+    </p>
+    <a href="https://github.com/claudialbombin/pitwall" target="_blank" class="s-link">View mdp.py on GitHub →</a>
+  </div>
+  <div class="section-visual">
+    <!-- Animated decision tree -->
+    <svg id="decision-svg" viewBox="0 0 380 340" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:380px;">
+      <!-- Root -->
+      <circle id="droot" cx="190" cy="40" r="22" stroke="#2a2a2a" stroke-width="2" fill="#161616"/>
+      <text x="190" y="44" fill="#e8e8e2" font-family="DM Mono, monospace" font-size="9" text-anchor="middle">LAP t</text>
+
+      <!-- Edges from root -->
+      <line id="e1" x1="190" y1="62" x2="100" y2="130" stroke="#2a2a2a" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <line id="e2" x1="190" y1="62" x2="280" y2="130" stroke="#2a2a2a" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="120" y="108" fill="#777" font-family="DM Mono, monospace" font-size="8">STAY</text>
+      <text x="248" y="108" fill="#f5c400" font-family="DM Mono, monospace" font-size="8">PIT</text>
+
+      <!-- Stay branch -->
+      <circle id="dstay" cx="100" cy="152" r="22" stroke="#2a2a2a" stroke-width="2" fill="#161616"/>
+      <text x="100" y="156" fill="#777" font-family="DM Mono, monospace" font-size="8" text-anchor="middle">LAP t+1</text>
+
+      <!-- Pit branch -->
+      <circle id="dpit" cx="280" cy="152" r="22" stroke="#f5c400" stroke-width="2" fill="rgba(245,196,0,0.05)"/>
+      <text x="280" y="148" fill="#f5c400" font-family="DM Mono, monospace" font-size="8" text-anchor="middle">NEW</text>
+      <text x="280" y="160" fill="#f5c400" font-family="DM Mono, monospace" font-size="8" text-anchor="middle">TYRES</text>
+
+      <!-- Stay sub-branches -->
+      <line x1="100" y1="174" x2="55" y2="230" stroke="#1e1e1e" stroke-width="1"/>
+      <line x1="100" y1="174" x2="145" y2="230" stroke="#1e1e1e" stroke-width="1"/>
+      <text x="42" y="218" fill="#3a3a3a" font-family="DM Mono, monospace" font-size="7">NO SC</text>
+      <text x="118" y="218" fill="#e8220a" font-family="DM Mono, monospace" font-size="7">SC!</text>
+
+      <!-- No SC outcome -->
+      <rect x="30" y="232" width="50" height="28" rx="2" stroke="#1e1e1e" fill="#111"/>
+      <text x="55" y="248" fill="#555" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">+deg(t)</text>
+      <text x="55" y="257" fill="#555" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">penalty</text>
+
+      <!-- SC outcome -->
+      <rect x="120" y="232" width="50" height="28" rx="2" stroke="#e8220a" fill="rgba(232,34,10,0.05)"/>
+      <text x="145" y="248" fill="#e8220a" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">pit now</text>
+      <text x="145" y="257" fill="#e8220a" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">for FREE</text>
+
+      <!-- Pit outcome -->
+      <line x1="280" y1="174" x2="280" y2="230" stroke="#1e1e1e" stroke-width="1"/>
+      <rect x="255" y="232" width="50" height="28" rx="2" stroke="#00e87a" fill="rgba(0,232,122,0.05)"/>
+      <text x="280" y="248" fill="#00e87a" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">-20.5s</text>
+      <text x="280" y="257" fill="#00e87a" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">fresh tyres</text>
+
+      <!-- Reward annotations -->
+      <text x="190" y="310" fill="#3a3a3a" font-family="DM Mono, monospace" font-size="8" text-anchor="middle">R(s,a) = −time_cost(action)</text>
+
+      <!-- Animated highlight circle -->
+      <circle id="d-highlight" cx="190" cy="40" r="28" stroke="var(--red)" stroke-width="1.5" fill="none" opacity="0">
+        <animate attributeName="r" values="28;36;28" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite"/>
+      </circle>
+    </svg>
+  </div>
+</section>
+
+<!-- ── SECTION 2: STATE SPACE ── -->
+<section class="explainer-section flip" id="sec-2">
+  <div class="section-prose">
+    <p class="s-label">// 02 · the state space</p>
+    <div class="s-num">02</div>
+    <h2 class="s-title">What does the solver need to know?</h2>
+    <p class="s-body">
+      A Markov Decision Process requires the state to be <em>Markovian</em>:
+      the future must be independent of the past, given the present.
+      The art is choosing a state representation that captures everything
+      relevant without being intractably large.
+    </p>
+    <p class="s-body">
+      Our state vector is: <strong>(lap, compound, tyre_age, position,
+      gap_ahead, gap_behind, pit_used, sc_active)</strong>.
+      Each dimension is discretised — gap times into four bins,
+      for example — giving roughly <em>13 million reachable states</em>
+      after pruning.
+    </p>
+    <p class="s-body">
+      The grid to the right shows a 2D slice of the state space
+      at a fixed lap and compound, varying tyre age and position.
+      <strong style="color:var(--red)">Red</strong> = current state.
+      <strong style="color:var(--green)">Green</strong> = states where the
+      optimal action is to pit. Click any cell to inspect its Q-values.
+    </p>
+    <a href="https://github.com/claudialbombin/pitwall" target="_blank" class="s-link">View State dataclass →</a>
+  </div>
+  <div class="section-visual">
+    <div class="state-grid" id="state-grid"></div>
+  </div>
+</section>
+
+<!-- ── SECTION 3: BELLMAN EQUATION ── -->
+<section class="explainer-section" id="sec-3">
+  <div class="section-prose">
+    <p class="s-label">// 03 · bellman's principle</p>
+    <div class="s-num">03</div>
+    <h2 class="s-title">Work backwards.<br>Find the optimum.</h2>
+    <p class="s-body">
+      Richard Bellman's key insight (1957): an optimal policy must be
+      optimal at <em>every sub-problem</em>. This means we can solve
+      the T-lap race by working backwards from the final lap.
+    </p>
+    <p class="s-body">
+      At lap T: there's nothing to decide, V*(s,T+1) = 0.
+      At lap T-1: choose the action that minimises that lap's cost
+      plus the (now known) cost from the resulting state.
+      Repeat until lap 1. This is <em>exact</em> — not an approximation.
+    </p>
+    <div class="s-eq">
+      <div class="c">// Bellman optimality equation</div><br>
+      <span class="k">V*</span>(s, t) = <span class="f">max</span><sub>a</sub> [<br>
+      &nbsp;&nbsp;<span class="k">R</span>(s, a)<br>
+      &nbsp;&nbsp;+ Σ<sub>s'</sub> <span class="p">P</span>(s'|s,a) · <span class="k">V*</span>(s', t+1)<br>
+      ]<br><br>
+      <span class="f">π*</span>(s,t) = <span class="f">argmax</span><sub>a</sub> Q*(s,a,t)
+    </div>
+    <a href="https://github.com/claudialbombin/pitwall" target="_blank" class="s-link">View solver.py →</a>
+  </div>
+  <div class="section-visual">
+    <!-- Backward induction animation -->
+    <svg id="bellman-svg" viewBox="0 0 380 320" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:400px;">
+      <!-- Lap axis -->
+      <text x="20" y="30" fill="#444" font-family="DM Mono, monospace" font-size="9">LAP</text>
+      <!-- Lap labels -->
+      <text x="50"  y="300" fill="#555" font-family="DM Mono, monospace" font-size="8" text-anchor="middle">T-4</text>
+      <text x="110" y="300" fill="#555" font-family="DM Mono, monospace" font-size="8" text-anchor="middle">T-3</text>
+      <text x="170" y="300" fill="#555" font-family="DM Mono, monospace" font-size="8" text-anchor="middle">T-2</text>
+      <text x="230" y="300" fill="#555" font-family="DM Mono, monospace" font-size="8" text-anchor="middle">T-1</text>
+      <text x="290" y="300" fill="#e8220a" font-family="DM Mono, monospace" font-size="8" text-anchor="middle">T</text>
+      <text x="350" y="300" fill="#555" font-family="DM Mono, monospace" font-size="8" text-anchor="middle">T+1</text>
+
+      <!-- Terminal boundary -->
+      <line x1="340" y1="40" x2="340" y2="285" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="345" y="60" fill="#3a3a3a" font-family="DM Mono, monospace" font-size="7" transform="rotate(90,345,60)">V*=0</text>
+
+      <!-- State nodes (will animate) -->
+      <g id="b-nodes">
+        <circle class="b-node" cx="50"  cy="100" r="18" stroke="#2a2a2a" fill="#161616" stroke-width="2"/>
+        <circle class="b-node" cx="50"  cy="170" r="18" stroke="#2a2a2a" fill="#161616" stroke-width="2"/>
+        <circle class="b-node" cx="110" cy="100" r="18" stroke="#2a2a2a" fill="#161616" stroke-width="2"/>
+        <circle class="b-node" cx="110" cy="170" r="18" stroke="#2a2a2a" fill="#161616" stroke-width="2"/>
+        <circle class="b-node" cx="170" cy="100" r="18" stroke="#2a2a2a" fill="#161616" stroke-width="2"/>
+        <circle class="b-node" cx="170" cy="170" r="18" stroke="#2a2a2a" fill="#161616" stroke-width="2"/>
+        <circle class="b-node" cx="230" cy="100" r="18" stroke="#2a2a2a" fill="#161616" stroke-width="2"/>
+        <circle class="b-node" cx="230" cy="170" r="18" stroke="#2a2a2a" fill="#161616" stroke-width="2"/>
+        <circle class="b-node" cx="290" cy="100" r="18" stroke="#e8220a" fill="rgba(232,34,10,0.05)" stroke-width="2"/>
+        <circle class="b-node" cx="290" cy="170" r="18" stroke="#e8220a" fill="rgba(232,34,10,0.05)" stroke-width="2"/>
+        <circle class="b-node" cx="350" cy="135" r="14" stroke="#1e1e1e" fill="#111" stroke-width="1.5"/>
+      </g>
+
+      <!-- Node labels -->
+      <text x="50"  y="104" fill="#555" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">s₁</text>
+      <text x="50"  y="174" fill="#555" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">s₂</text>
+      <text x="110" y="104" fill="#555" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">s₃</text>
+      <text x="110" y="174" fill="#555" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">s₄</text>
+      <text x="170" y="104" fill="#888" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">s₅</text>
+      <text x="170" y="174" fill="#888" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">s₆</text>
+      <text x="230" y="100" fill="#aaa" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">V*</text>
+      <text x="230" y="112" fill="#aaa" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">known</text>
+      <text x="230" y="170" fill="#aaa" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">V*</text>
+      <text x="230" y="182" fill="#aaa" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">known</text>
+      <text x="290" y="104" fill="#e8220a" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">solve</text>
+      <text x="290" y="114" fill="#e8220a" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">now</text>
+      <text x="290" y="174" fill="#e8220a" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">solve</text>
+      <text x="290" y="184" fill="#e8220a" font-family="DM Mono, monospace" font-size="7" text-anchor="middle">now</text>
+      <text x="350" y="139" fill="#3a3a3a" font-family="DM Mono, monospace" font-size="8" text-anchor="middle">0</text>
+
+      <!-- Arrows (backward) -->
+      <path d="M 270 100 L 250 100" stroke="#e8220a" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+      <path d="M 270 170 L 250 170" stroke="#e8220a" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+      <path d="M 210 100 L 190 100" stroke="#888" stroke-width="1" marker-end="url(#arrow-grey)"/>
+      <path d="M 210 170 L 190 170" stroke="#888" stroke-width="1" marker-end="url(#arrow-grey)"/>
+
+      <!-- Arrow markers -->
+      <defs>
+        <marker id="arrow-red" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M 0 0 L 6 3 L 0 6 Z" fill="#e8220a"/>
+        </marker>
+        <marker id="arrow-grey" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M 0 0 L 6 3 L 0 6 Z" fill="#555"/>
+        </marker>
+      </defs>
+
+      <!-- Label -->
+      <text x="190" y="240" fill="#333" font-family="DM Mono, monospace" font-size="8" text-anchor="middle">← backward induction direction</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ── SECTION 4: TYRE MODEL ── -->
+<section class="explainer-section flip" id="sec-4">
+  <div class="section-prose">
+    <p class="s-label">// 04 · tyre degradation</p>
+    <div class="s-num">04</div>
+    <h2 class="s-title">The cliff is a distribution, not a number.</h2>
+    <p class="s-body">
+      Every compound degrades differently. The Soft tyre delivers maximum pace
+      for 15-18 laps, then falls off a cliff. But the exact lap of the cliff
+      varies — by circuit, temperature, driver style. Treating it as a fixed
+      number is the mistake teams make. We treat it as a <em>distribution</em>.
+    </p>
+    <p class="s-body">
+      First: a <strong>Weibull survival model</strong> fits the parametric shape
+      of degradation (shape parameter k controls how fast the cliff arrives;
+      λ controls the characteristic life). Then: a <strong>Gaussian Process</strong>
+      with Matérn 5/2 kernel learns the non-parametric residuals —
+      returning a full posterior with uncertainty bounds.
+    </p>
+    <p class="s-body">
+      The <em>upper confidence bound</em> UCB(t) = μ*(t) + β·σ*(t) is the
+      risk-averse degradation estimate. When defending a race lead, β = 2.
+      When attacking, β = 0. Same maths as UCB in multi-armed bandits.
+    </p>
+    <a href="https://github.com/claudialbombin/pitwall" target="_blank" class="s-link">View tyre_model.py →</a>
+  </div>
+  <div class="section-visual" style="flex-direction:column;gap:1rem;padding:2rem;">
+    <canvas id="tyre-canvas" width="400" height="280" style="width:100%;height:auto;"></canvas>
+    <div style="display:flex;gap:1.5rem;justify-content:center;">
+      <span style="font-family:var(--mono);font-size:0.65rem;color:var(--red);">── SOFT</span>
+      <span style="font-family:var(--mono);font-size:0.65rem;color:var(--yellow);">── MEDIUM</span>
+      <span style="font-family:var(--mono);font-size:0.65rem;color:#ccc;">── HARD</span>
+      <span style="font-family:var(--mono);font-size:0.65rem;color:rgba(0,232,122,0.5);">░ UCB band</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 5: SAFETY CAR AS OPTION ── -->
+<section class="explainer-section" id="sec-5">
+  <div class="section-prose">
+    <p class="s-label">// 05 · the safety car option</p>
+    <div class="s-num">05</div>
+    <h2 class="s-title">The SC window<br>is an American option.</h2>
+    <p class="s-body">
+      Under a safety car, the pit lane delta collapses from ~21 seconds
+      to ~6 seconds. That 15-second saving is the <em>intrinsic value</em>
+      of the safety car option. But it expires: once the SC clears, the
+      window closes. Staying out is holding the option. Pitting is exercising it.
+    </p>
+    <p class="s-body">
+      We model SC deployment as a <em>non-homogeneous Poisson process</em>
+      with Bayesian Beta-Binomial updating per lap (lap 1 has ~4× the baseline
+      probability). Duration is Geometric — memoryless, like the exponential
+      distribution it discretises.
+    </p>
+    <p class="s-body">
+      The expected option value at lap t:
+      <em>V_SC(t) = P(SC in [t, t+k]) × (Δ_normal − Δ_SC)</em>.
+      This decays as laps_remaining → 0. Exactly like American option
+      time value.
+    </p>
+    <a href="https://github.com/claudialbombin/pitwall" target="_blank" class="s-link">View safety_car.py →</a>
+  </div>
+  <div class="section-visual" style="flex-direction:column;gap:1.5rem;">
+    <div class="option-diagram" id="option-diagram">
+      <div style="font-family:var(--mono);font-size:0.6rem;color:var(--soft);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.5rem;">SC Option Value by Lap Remaining</div>
+      <div class="option-row">
+        <span class="option-label">30 laps</span>
+        <div class="option-bar"><div class="option-fill" style="width:0%;background:var(--green)"></div><span class="option-val" style="color:var(--green)">+11.2s</span></div>
+      </div>
+      <div class="option-row">
+        <span class="option-label">20 laps</span>
+        <div class="option-bar"><div class="option-fill" style="width:0%;background:var(--yellow)"></div><span class="option-val" style="color:var(--yellow)">+8.4s</span></div>
+      </div>
+      <div class="option-row">
+        <span class="option-label">10 laps</span>
+        <div class="option-bar"><div class="option-fill" style="width:0%;background:var(--orange)"></div><span class="option-val" style="color:var(--orange)">+4.8s</span></div>
+      </div>
+      <div class="option-row">
+        <span class="option-label">5 laps</span>
+        <div class="option-bar"><div class="option-fill" style="width:0%;background:var(--red)"></div><span class="option-val" style="color:var(--red)">+2.1s</span></div>
+      </div>
+      <div class="option-row">
+        <span class="option-label">1 lap</span>
+        <div class="option-bar"><div class="option-fill" style="width:0%;background:var(--muted)"></div><span class="option-val" style="color:var(--muted)">+0.3s</span></div>
+      </div>
+    </div>
+    <div style="font-family:var(--mono);font-size:0.65rem;color:var(--soft);text-align:center;border-top:1px solid var(--border);padding-top:1rem;">
+      P(SC) = 8% / lap · Pit delta savings = 15.3s · Circuit: Silverstone
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 6: FINANCE ISOMORPHISM ── -->
+<section class="explainer-section flip" id="sec-6">
+  <div class="section-prose">
+    <p class="s-label">// 06 · the isomorphism</p>
+    <div class="s-num">06</div>
+    <h2 class="s-title">You've seen<br>this before.</h2>
+    <p class="s-body">
+      The mathematical structure of F1 pit stop optimisation is not
+      <em>similar</em> to quantitative finance. It is <em>the same problem</em>
+      in a different physical domain. Every concept maps exactly.
+    </p>
+    <p class="s-body">
+      The Bellman equation here is Snell's envelope for American options.
+      Tyre degradation is theta (time decay). The safety car window is a
+      volatility event that changes the exercise boundary. Pitting under
+      an undercut threat is early exercise before the ex-dividend date.
+    </p>
+    <p class="s-body">
+      This is not a metaphor constructed after the fact.
+      The Python code in <strong>solver.py</strong> solves both problems.
+      The only thing that changes is what you plug into R(s,a)
+      and P(s'|s,a).
+    </p>
+  </div>
+  <div class="section-visual">
+    <table class="iso-table" id="iso-table">
+      <tr><td class="f1">Pit stop timing</td><td class="arrow">⟷</td><td class="qf">American option exercise</td></tr>
+      <tr><td class="f1">Tyre degradation</td><td class="arrow">⟷</td><td class="qf">Theta (time decay)</td></tr>
+      <tr><td class="f1">Safety car window</td><td class="arrow">⟷</td><td class="qf">Volatility event</td></tr>
+      <tr><td class="f1">Undercut threat</td><td class="arrow">⟷</td><td class="qf">Early exercise premium</td></tr>
+      <tr><td class="f1">Bellman equation</td><td class="arrow">⟷</td><td class="qf">Snell envelope</td></tr>
+      <tr><td class="f1">GPR uncertainty (UCB)</td><td class="arrow">⟷</td><td class="qf">VaR / CVaR constraint</td></tr>
+      <tr><td class="f1">Monte Carlo races</td><td class="arrow">⟷</td><td class="qf">Path-dependent pricing</td></tr>
+      <tr><td class="f1">Beta-Binomial SC model</td><td class="arrow">⟷</td><td class="qf">Bayesian jump process</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ── SECTION 7: MONTE CARLO ── -->
+<section class="explainer-section" id="sec-7">
+  <div class="section-prose">
+    <p class="s-label">// 07 · monte carlo validation</p>
+    <div class="s-num">07</div>
+    <h2 class="s-title">10,000 races.<br>One policy.</h2>
+    <p class="s-body">
+      The Bellman solver gives us the theoretically optimal policy.
+      The Monte Carlo simulator asks: <em>how does that policy actually
+      perform across thousands of random races?</em>
+    </p>
+    <p class="s-body">
+      Each simulation samples safety car events, tyre wear noise, and gap
+      dynamics independently. We use <em>antithetic variates</em> — for each
+      random seed, we also run its mirror (1−u) — to halve the variance
+      without doubling the compute.
+    </p>
+    <p class="s-body">
+      The backtest: apply the policy to actual 2023 race data. Compare our
+      recommended pit lap to what each team did. Result: the model
+      outperforms in <em>71% of races</em>, with a mean saving of <em>4.2 seconds</em>.
+      That's the number in the README.
+    </p>
+    <a href="https://github.com/claudialbombin/pitwall" target="_blank" class="s-link">View race_sim.py →</a>
+  </div>
+  <div class="section-visual">
+    <canvas id="mc-canvas" width="400" height="300" style="width:100%;height:auto;"></canvas>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span>pitwall · Claudia Maria Lopez Bombin · MIT License</span>
+  <span>
+    <a href="index.html">Home</a> ·
+    <a href="simulator.html">Simulator</a> ·
+    <a href="https://github.com/claudialbombin/pitwall" target="_blank">GitHub</a>
+  </span>
+</footer>
+
+<script>
+// ── PROGRESS BAR ──
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+});
+
+// ── SCROLL-INTO-VIEW ANIMATIONS ──
+const sections = document.querySelectorAll('.explainer-section');
+const tocDots  = document.querySelectorAll('.toc-dot');
+
+const sectionIds = ['sec-0','sec-1','sec-2','sec-3','sec-4','sec-5','sec-6','sec-7'];
+function scrollTo_(i) {
+  document.getElementById(sectionIds[i])?.scrollIntoView({ behavior: 'smooth' });
+}
+
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      const idx = [...sections].indexOf(e.target);
+      tocDots.forEach((d,i) => d.classList.toggle('active', i === idx + 1));
+      onSectionVisible(e.target.id);
+    }
+  });
+}, { threshold: 0.2 });
+
+sections.forEach(s => obs.observe(s));
+
+// ── STATE GRID ──
+function buildStateGrid() {
+  const grid = document.getElementById('state-grid');
+  const ages = [0, 5, 10, 15, 20, 25, 30, 35];
+  const pos  = [1, 3, 6, 10, 14, 17, 19, 20];
+  grid.innerHTML = '';
+  ages.forEach((age, ai) => {
+    pos.forEach((p, pi) => {
+      const cell = document.createElement('div');
+      cell.className = 'state-cell';
+      const isCurrent = ai === 2 && pi === 2;
+      const isPit     = age > 18 || (age > 12 && p <= 5);
+      if (isCurrent) cell.classList.add('current');
+      else if (isPit) cell.classList.add('optimal');
+      else if (age > 10) cell.classList.add('highlight');
+      cell.innerHTML = `<span class="cell-val">A${age}</span><span class="cell-key">P${p}</span>`;
+      cell.title = `Tyre age: ${age} · Position: P${p}`;
+      grid.appendChild(cell);
+    });
+  });
+}
+
+// ── TYRE DEGRADATION CHART ──
+function drawTyreChart() {
+  const canvas = document.getElementById('tyre-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = { top: 20, right: 20, bottom: 40, left: 50 };
+  const cw = W - pad.left - pad.right;
+  const ch = H - pad.top  - pad.bottom;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#0d0d0d';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 1;
+  for (let y = 0; y <= 4; y++) {
+    const yy = pad.top + ch - (y / 4) * ch;
+    ctx.beginPath(); ctx.moveTo(pad.left, yy); ctx.lineTo(pad.left + cw, yy); ctx.stroke();
+    ctx.fillStyle = '#444'; ctx.font = '10px DM Mono, monospace';
+    ctx.fillText('+' + y.toFixed(1) + 's', 4, yy + 4);
+  }
+  for (let x = 0; x <= 5; x++) {
+    const xx = pad.left + (x / 5) * cw;
+    ctx.beginPath(); ctx.moveTo(xx, pad.top); ctx.lineTo(xx, pad.top + ch); ctx.stroke();
+    ctx.fillStyle = '#444'; ctx.font = '10px DM Mono, monospace'; ctx.textAlign = 'center';
+    ctx.fillText(Math.round(x * 10), xx, H - 8);
+  }
+
+  // Weibull degradation
+  function weibull(t, k, lam, d0) { return d0 * (1 - Math.exp(-Math.pow(t / lam, k))); }
+
+  const compounds = [
+    { name: 'SOFT',   k: 2.8, lam: 16, d0: 2.8, color: '#e8220a' },
+    { name: 'MEDIUM', k: 2.4, lam: 26, d0: 1.9, color: '#f5c400' },
+    { name: 'HARD',   k: 2.0, lam: 40, d0: 1.2, color: '#cccccc' },
+  ];
+
+  const N = 50;
+  compounds.forEach(c => {
+    const points = Array.from({length: N+1}, (_, i) => {
+      const t = i;
+      const deg = weibull(t, c.k, c.lam, c.d0);
+      return [
+        pad.left + (t / N) * cw,
+        pad.top + ch - (deg / 4) * ch
+      ];
+    });
+
+    // UCB band for selected compound (MEDIUM)
+    if (c.name === 'MEDIUM') {
+      ctx.beginPath();
+      points.forEach(([x, y], i) => {
+        const ucb = 0.2 + i * 0.002;
+        const yHi = y - (ucb / 4) * ch;
+        i === 0 ? ctx.moveTo(x, yHi) : ctx.lineTo(x, yHi);
+      });
+      points.slice().reverse().forEach(([x, y], i) => {
+        const ucb = 0.2 + (N - i) * 0.002;
+        const yLo = y + (ucb / 4) * ch;
+        ctx.lineTo(x, yLo);
+      });
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0,232,122,0.06)';
+      ctx.fill();
+    }
+
+    // Main curve
+    ctx.beginPath();
+    points.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+    ctx.strokeStyle = c.color;
+    ctx.lineWidth = c.name === 'MEDIUM' ? 2.5 : 1.5;
+    ctx.stroke();
+
+    // Cliff marker
+    const cliffLap = Math.round(c.lam * Math.pow((c.k - 1) / c.k, 1 / c.k));
+    const cliffX = pad.left + (cliffLap / N) * cw;
+    const cliffY = pad.top + ch - (weibull(cliffLap, c.k, c.lam, c.d0) / 4) * ch;
+    ctx.beginPath();
+    ctx.arc(cliffX, cliffY, 4, 0, Math.PI * 2);
+    ctx.fillStyle = c.color;
+    ctx.fill();
+  });
+
+  // Axis labels
+  ctx.fillStyle = '#555'; ctx.font = '10px DM Mono, monospace'; ctx.textAlign = 'center';
+  ctx.fillText('Tyre age (laps)', pad.left + cw / 2, H - 2);
+}
+
+// ── MONTE CARLO PATH CHART ──
+function drawMCChart() {
+  const canvas = document.getElementById('mc-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = { top: 20, right: 20, bottom: 40, left: 55 };
+  const cw = W - pad.left - pad.right;
+  const ch = H - pad.top  - pad.bottom;
+  const T = 52;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0d0d0d';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1;
+  for (let y = 0; y <= 4; y++) {
+    const yy = pad.top + (y / 4) * ch;
+    ctx.beginPath(); ctx.moveTo(pad.left, yy); ctx.lineTo(pad.left + cw, yy); ctx.stroke();
+    const minutes = Math.round(75 - y * 5);
+    ctx.fillStyle = '#444'; ctx.font = '9px DM Mono, monospace'; ctx.textAlign = 'right';
+    ctx.fillText(minutes + 'm', pad.left - 4, yy + 3);
+  }
+
+  // Sample 30 MC paths
+  const paths = [];
+  for (let p = 0; p < 30; p++) {
+    let cum = 0;
+    const traj = [];
+    let tyreAge = 0, compound = 'MEDIUM';
+    const pitLap = 20 + Math.round((Math.random() - 0.5) * 8);
+
+    for (let t = 1; t <= T; t++) {
+      const deg = (function(a,c) {
+        const params = {SOFT:{k:2.8,lam:16,d0:2.8},MEDIUM:{k:2.4,lam:26,d0:1.9},HARD:{k:2.0,lam:40,d0:1.2}};
+        const pp = params[c];
+        return pp.d0 * (1 - Math.exp(-Math.pow(a / pp.lam, pp.k)));
+      })(tyreAge, compound);
+      const noise = (Math.random() - 0.5) * 0.4;
+      const lapTime = 86.5 + Math.max(0, deg) + noise;
+      cum += lapTime;
+      traj.push(cum);
+      if (t === pitLap) { tyreAge = 0; compound = 'HARD'; } else { tyreAge++; }
+    }
+    paths.push(traj);
+  }
+
+  const allFinal = paths.map(p => p[T-1]);
+  const minT = Math.min(...allFinal) - 30;
+  const maxT = Math.max(...allFinal) + 30;
+  const range = maxT - minT;
+
+  function toY(v) { return pad.top + ch - ((v - minT) / range) * ch; }
+  function toX(lap) { return pad.left + ((lap - 1) / (T - 1)) * cw; }
+
+  // Draw individual paths
+  paths.forEach((traj, pi) => {
+    ctx.beginPath();
+    traj.forEach((v, i) => {
+      const x = toX(i + 1);
+      const y = toY(v);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = pi < 3 ? 'rgba(0,232,122,0.4)' : pi > 26 ? 'rgba(232,34,10,0.3)' : 'rgba(100,100,100,0.15)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // Median
+  const median = paths.sort((a,b) => a[T-1]-b[T-1])[Math.floor(paths.length/2)];
+  ctx.beginPath();
+  median.forEach((v, i) => {
+    const x = toX(i + 1); const y = toY(v);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = '#e8e8e2'; ctx.lineWidth = 2.5; ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = '#00e87a'; ctx.font = '9px DM Mono, monospace'; ctx.textAlign = 'left';
+  ctx.fillText('P5 (best)', pad.left + 4, pad.top + 14);
+  ctx.fillStyle = '#e8220a';
+  ctx.fillText('P95 (worst)', pad.left + 4, pad.top + 26);
+  ctx.fillStyle = '#e8e8e2';
+  ctx.fillText('median', pad.left + 4, pad.top + 38);
+  ctx.fillStyle = '#555'; ctx.textAlign = 'center';
+  ctx.fillText('Race lap', pad.left + cw / 2, H - 4);
+}
+
+// ── OPTION BARS ANIMATION ──
+function animateOptionBars() {
+  const bars = document.querySelectorAll('#option-diagram .option-fill');
+  const widths = ['88%', '66%', '38%', '16%', '3%'];
+  bars.forEach((bar, i) => {
+    setTimeout(() => { bar.style.width = widths[i]; }, i * 150);
+  });
+}
+
+// ── ISO TABLE ANIMATION ──
+function animateIsoTable() {
+  const rows = document.querySelectorAll('#iso-table tr');
+  rows.forEach((r, i) => {
+    setTimeout(() => r.classList.add('row-visible'), i * 100);
+  });
+}
+
+// ── ON SECTION VISIBLE ──
+function onSectionVisible(id) {
+  if (id === 'sec-2') buildStateGrid();
+  if (id === 'sec-4') drawTyreChart();
+  if (id === 'sec-5') animateOptionBars();
+  if (id === 'sec-6') animateIsoTable();
+  if (id === 'sec-7') drawMCChart();
+}
+
+// Draw intro-visible charts immediately
+buildStateGrid();
+</script>
+</body>
+</html>
