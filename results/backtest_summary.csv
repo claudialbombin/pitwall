@@ -1,0 +1,58 @@
+Driver,Team,Circuit,ActualPitLap,MDPPitLap,LapDiff,DeltaSeconds,MDPFaster
+VER,Red Bull Racing,silverstone,34,26,-8,0.41,True
+GAS,Alpine,silverstone,32,26,-6,0.33,True
+PER,Red Bull Racing,silverstone,29,26,-3,0.18,True
+ALO,Aston Martin,silverstone,34,26,-8,0.41,True
+LEC,Ferrari,silverstone,19,26,7,-0.52,False
+STR,Aston Martin,silverstone,32,26,-6,0.33,True
+SAR,Williams,silverstone,30,26,-4,0.24,True
+DEV,AlphaTauri,silverstone,28,26,-2,0.13,True
+TSU,AlphaTauri,silverstone,15,26,11,-0.81,False
+ALB,Williams,silverstone,33,26,-7,0.37,True
+ZHO,Alfa Romeo,silverstone,25,26,1,-0.07,False
+HUL,Haas F1 Team,silverstone,8,26,18,-1.16,False
+NOR,McLaren,silverstone,34,26,-8,0.41,True
+HAM,Mercedes,silverstone,34,26,-8,0.41,True
+SAI,Ferrari,silverstone,27,26,-1,0.07,False
+RUS,Mercedes,silverstone,29,26,-3,0.18,True
+BOT,Alfa Romeo,silverstone,33,26,-7,0.37,True
+PIA,McLaren,silverstone,30,26,-4,0.24,True
+VER,Red Bull Racing,monza,21,27,6,-0.43,False
+GAS,Alpine,monza,11,27,16,-1.11,False
+PER,Red Bull Racing,monza,22,27,5,-0.35,False
+ALO,Aston Martin,monza,22,27,5,-0.35,False
+LEC,Ferrari,monza,21,27,6,-0.43,False
+STR,Aston Martin,monza,21,27,6,-0.43,False
+SAR,Williams,monza,15,27,12,-0.87,False
+MAG,Haas F1 Team,monza,13,27,14,-1.0,False
+ALB,Williams,monza,16,27,11,-0.8,False
+ZHO,Alfa Romeo,monza,12,27,15,-1.05,False
+HUL,Haas F1 Team,monza,15,27,12,-0.87,False
+OCO,Alpine,monza,25,27,2,-0.13,False
+NOR,McLaren,monza,23,27,4,-0.28,False
+LAW,AlphaTauri,monza,14,27,13,-0.94,False
+HAM,Mercedes,monza,28,27,-1,0.06,False
+SAI,Ferrari,monza,20,27,7,-0.51,False
+RUS,Mercedes,monza,20,27,7,-0.51,False
+BOT,Alfa Romeo,monza,26,27,1,-0.07,False
+PIA,McLaren,monza,24,27,3,-0.2,False
+VER,Red Bull Racing,monaco,56,39,-17,1.42,True
+GAS,Alpine,monaco,48,39,-9,1.3,True
+PER,Red Bull Racing,monaco,2,39,37,0.38,True
+ALO,Aston Martin,monaco,55,39,-16,1.75,True
+LEC,Ferrari,monaco,45,39,-6,0.79,True
+STR,Aston Martin,monaco,52,39,-13,1.91,True
+SAR,Williams,monaco,21,39,18,0.92,True
+MAG,Haas F1 Team,monaco,57,39,-18,1.17,True
+DEV,AlphaTauri,monaco,54,39,-15,1.91,True
+TSU,AlphaTauri,monaco,54,39,-15,1.91,True
+ALB,Williams,monaco,19,39,20,0.45,True
+ZHO,Alfa Romeo,monaco,2,39,37,0.38,True
+HUL,Haas F1 Team,monaco,2,39,37,0.38,True
+OCO,Alpine,monaco,33,39,6,-0.62,False
+NOR,McLaren,monaco,51,39,-12,1.91,True
+HAM,Mercedes,monaco,32,39,7,-0.57,False
+SAI,Ferrari,monaco,34,39,5,-0.55,False
+RUS,Mercedes,monaco,55,39,-16,1.75,True
+BOT,Alfa Romeo,monaco,52,39,-13,1.91,True
+PIA,McLaren,monaco,55,39,-16,1.75,True
