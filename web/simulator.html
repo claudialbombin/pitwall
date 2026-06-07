@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pitwall — simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black:  #080808;
+    --carbon: #111111;
+    --panel:  #161616;
+    --panel2: #1c1c1c;
+    --border: #2a2a2a;
+    --muted:  #444;
+    --text:   #e8e8e2;
+    --soft:   #888880;
+    --red:    #e8220a;
+    --red2:   #ff4422;
+    --yellow: #f5c400;
+    --green:  #00e87a;
+    --blue:   #4a9eff;
+    --orange: #ff8c42;
+    --mono:   'DM Mono', monospace;
+    --display:'Bebas Neue', sans-serif;
+    --sans:   'DM Sans', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: var(--sans);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--carbon);
+    flex-shrink: 0;
+  }
+  .logo { font-family: var(--display); font-size: 1.3rem; letter-spacing: 0.08em; color: var(--text); text-decoration: none; }
+  .logo span { color: var(--red); }
+  .header-right { display: flex; align-items: center; gap: 1.5rem; }
+  .sim-badge {
+    font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--green); padding: 0.3rem 0.8rem;
+    border: 1px solid var(--green); background: rgba(0,232,122,0.06);
+  }
+  .back-link { font-family: var(--mono); font-size: 0.65rem; color: var(--soft); text-decoration: none; letter-spacing: 0.1em; }
+  .back-link:hover { color: var(--text); }
+
+  /* ── MAIN LAYOUT ── */
+  .app {
+    display: grid;
+    grid-template-columns: 320px 1fr 280px;
+    grid-template-rows: 1fr;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── LEFT PANEL: CONTROLS ── */
+  .controls {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--soft);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Circuit selector */
+  .circuit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .circuit-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--soft);
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.65rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .circuit-btn:hover { border-color: var(--muted); color: var(--text); }
+  .circuit-btn.active { border-color: var(--red); color: var(--text); background: rgba(232,34,10,0.08); }
+  .circuit-btn .laps { display: block; font-size: 0.55rem; color: var(--muted); margin-top: 0.25rem; }
+
+  /* Compound selector */
+  .compound-row { display: flex; gap: 0.5rem; }
+  .compound-btn {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.5rem 0.25rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .compound-btn.active-soft   { border-color: var(--red);    color: var(--red);    background: rgba(232,34,10,0.08); }
+  .compound-btn.active-medium { border-color: var(--yellow); color: var(--yellow); background: rgba(245,196,0,0.08); }
+  .compound-btn.active-hard   { border-color: #ddd;          color: #ddd;          background: rgba(200,200,200,0.08); }
+  .compound-btn .tyre-circle {
+    width: 18px; height: 18px; border-radius: 50%; border: 2px solid currentColor;
+  }
+
+  /* Slider */
+  .slider-row { display: flex; flex-direction: column; gap: 0.5rem; }
+  .slider-label { display: flex; justify-content: space-between; }
+  .slider-label span { font-family: var(--mono); font-size: 0.65rem; color: var(--soft); letter-spacing: 0.08em; }
+  .slider-label .val { color: var(--text); }
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--red);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .toggle-label { font-family: var(--mono); font-size: 0.65rem; color: var(--soft); letter-spacing: 0.06em; }
+  .toggle {
+    width: 36px; height: 18px;
+    background: var(--border);
+    border-radius: 9px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle.on { background: var(--green); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--text);
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 20px; }
+
+  /* Run button */
+  .run-btn {
+    width: 100%;
+    background: var(--red);
+    border: none;
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: auto;
+  }
+  .run-btn:hover { background: var(--red2); }
+  .run-btn:disabled { background: var(--muted); cursor: wait; }
+
+  /* ── CENTER: MAIN VISUALISATION ── */
+  .viz-area {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .viz-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .viz-tab {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    color: var(--soft);
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  .viz-tab.active { color: var(--text); border-bottom-color: var(--red); }
+
+  .viz-content { flex: 1; overflow: hidden; position: relative; }
+  .viz-pane { display: none; height: 100%; padding: 1.5rem; }
+  .viz-pane.active { display: flex; flex-direction: column; gap: 1rem; }
+
+  /* Canvas wrapper */
+  .chart-wrap { flex: 1; position: relative; min-height: 0; }
+  canvas { width: 100% !important; height: 100% !important; }
+
+  /* Pit recommendation banner */
+  .pit-banner {
+    padding: 0.75rem 1.25rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    border: 1px solid;
+    transition: all 0.3s;
+  }
+  .pit-banner.stay  { border-color: var(--green);  background: rgba(0,232,122,0.06);  color: var(--green); }
+  .pit-banner.pit   { border-color: var(--yellow); background: rgba(245,196,0,0.08);  color: var(--yellow); }
+  .pit-banner.urgent{ border-color: var(--red);    background: rgba(232,34,10,0.08);  color: var(--red); }
+
+  /* Race replay bar */
+  .replay-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.5rem;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .replay-btn {
+    font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em;
+    text-transform: uppercase; background: none; border: 1px solid var(--border);
+    color: var(--soft); padding: 0.4rem 0.9rem; cursor: pointer; transition: all 0.15s;
+  }
+  .replay-btn:hover { border-color: var(--text); color: var(--text); }
+  .replay-btn.active { border-color: var(--red); color: var(--red); }
+  .replay-progress { flex: 1; }
+  .replay-lap { font-family: var(--mono); font-size: 0.7rem; color: var(--soft); white-space: nowrap; }
+
+  /* ── RIGHT PANEL: TELEMETRY ── */
+  .telemetry {
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .telem-section {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .telem-big {
+    font-family: var(--display);
+    font-size: 2.8rem;
+    line-height: 1;
+    margin: 0.25rem 0;
+  }
+  .telem-unit { font-family: var(--mono); font-size: 0.8rem; color: var(--soft); }
+  .telem-label { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--soft); }
+
+  .telem-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #1a1a1a;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+  }
+  .telem-row:last-child { border-bottom: none; }
+  .telem-row .key { color: var(--soft); }
+  .telem-row .val { color: var(--text); }
+  .telem-row .val.good  { color: var(--green); }
+  .telem-row .val.warn  { color: var(--yellow); }
+  .telem-row .val.crit  { color: var(--red); }
+
+  /* Tyre wear visual */
+  .tyre-viz { display: flex; gap: 0.5rem; margin: 0.75rem 0; }
+  .tyre-block {
+    flex: 1; height: 8px; background: var(--border);
+    position: relative; overflow: hidden;
+  }
+  .tyre-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    transition: width 0.5s ease;
+  }
+
+  /* Mini SC timeline */
+  .sc-timeline {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+  .sc-lap {
+    width: 8px; height: 8px;
+    background: var(--border);
+    transition: background 0.2s;
+  }
+  .sc-lap.sc-active { background: var(--yellow); }
+  .sc-lap.current   { background: var(--red); }
+
+  /* Value function mini chart area */
+  .vf-mini { height: 80px; position: relative; margin-top: 0.5rem; }
+
+  /* Loading overlay */
+  .loading-overlay {
+    position: absolute; inset: 0;
+    background: rgba(8,8,8,0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .loading-overlay.visible { opacity: 1; pointer-events: all; }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: var(--mono); font-size: 0.7rem; color: var(--soft); letter-spacing: 0.1em; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">PIT<span>WALL</span></a>
+  <div class="header-right">
+    <span class="sim-badge">● Live Simulator</span>
+    <a href="explainer.html" class="back-link">The Math →</a>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- LEFT: CONTROLS -->
+  <div class="controls">
+
+    <!-- Circuit -->
+    <div>
+      <div class="panel-title">// Circuit</div>
+      <div class="circuit-grid">
+        <button class="circuit-btn active" data-circuit="silverstone" data-laps="52" onclick="selectCircuit(this)">
+          Silverstone
+          <span class="laps">52 laps · 18.9s pit</span>
+        </button>
+        <button class="circuit-btn" data-circuit="monza" data-laps="53" onclick="selectCircuit(this)">
+          Monza
+          <span class="laps">53 laps · 23.4s pit</span>
+        </button>
+        <button class="circuit-btn" data-circuit="monaco" data-laps="78" onclick="selectCircuit(this)">
+          Monaco
+          <span class="laps">78 laps · 22.0s pit</span>
+        </button>
+        <button class="circuit-btn" data-circuit="spa" data-laps="44" onclick="selectCircuit(this)">
+          Spa
+          <span class="laps">44 laps · 18.2s pit</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Starting compound -->
+    <div>
+      <div class="panel-title">// Starting Compound</div>
+      <div class="compound-row">
+        <button class="compound-btn" data-compound="SOFT" onclick="selectCompound(this)">
+          <div class="tyre-circle"></div>
+          Soft
+        </button>
+        <button class="compound-btn active-medium" data-compound="MEDIUM" onclick="selectCompound(this)">
+          <div class="tyre-circle"></div>
+          Med
+        </button>
+        <button class="compound-btn" data-compound="HARD" onclick="selectCompound(this)">
+          <div class="tyre-circle"></div>
+          Hard
+        </button>
+      </div>
+    </div>
+
+    <!-- Starting position -->
+    <div>
+      <div class="panel-title">// Starting Position</div>
+      <div class="slider-row">
+        <div class="slider-label">
+          <span>Grid position</span>
+          <span class="val" id="pos-val">P5</span>
+        </div>
+        <input type="range" id="pos-slider" min="1" max="20" value="5"
+               oninput="document.getElementById('pos-val').textContent='P'+this.value">
+      </div>
+    </div>
+
+    <!-- Gap ahead -->
+    <div>
+      <div class="panel-title">// Race Context</div>
+      <div class="slider-row">
+        <div class="slider-label">
+          <span>Gap ahead</span>
+          <span class="val" id="gap-ahead-val">2.4s</span>
+        </div>
+        <input type="range" id="gap-ahead-slider" min="0.1" max="10" step="0.1" value="2.4"
+               oninput="document.getElementById('gap-ahead-val').textContent=parseFloat(this.value).toFixed(1)+'s'">
+      </div>
+      <br>
+      <div class="slider-row">
+        <div class="slider-label">
+          <span>Gap behind</span>
+          <span class="val" id="gap-behind-val">1.8s</span>
+        </div>
+        <input type="range" id="gap-behind-slider" min="0.1" max="10" step="0.1" value="1.8"
+               oninput="document.getElementById('gap-behind-val').textContent=parseFloat(this.value).toFixed(1)+'s'">
+      </div>
+    </div>
+
+    <!-- Toggles -->
+    <div>
+      <div class="panel-title">// Options</div>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <div class="toggle-row">
+          <span class="toggle-label">Safety car probability</span>
+          <div class="toggle on" id="sc-toggle" onclick="this.classList.toggle('on');runSimulation()"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Risk-averse strategy (UCB)</span>
+          <div class="toggle" id="ucb-toggle" onclick="this.classList.toggle('on');runSimulation()"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Track evolution</span>
+          <div class="toggle on" id="evo-toggle" onclick="this.classList.toggle('on');runSimulation()"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- N simulations -->
+    <div>
+      <div class="panel-title">// Monte Carlo</div>
+      <div class="slider-row">
+        <div class="slider-label">
+          <span>Simulations</span>
+          <span class="val" id="mc-val">1,000</span>
+        </div>
+        <input type="range" id="mc-slider" min="100" max="5000" step="100" value="1000"
+               oninput="document.getElementById('mc-val').textContent=parseInt(this.value).toLocaleString()">
+      </div>
+    </div>
+
+    <button class="run-btn" id="run-btn" onclick="runSimulation()">
+      ▶ Run Simulation
+    </button>
+
+  </div>
+
+  <!-- CENTER: VISUALISATION -->
+  <div class="viz-area">
+
+    <!-- Pit recommendation -->
+    <div class="pit-banner stay" id="pit-banner">
+      <span id="banner-text">● STAY OUT — optimal on current compound</span>
+      <span id="banner-lap" style="font-size:0.6rem;opacity:0.7">Lap 1 / 52</span>
+    </div>
+
+    <!-- Tabs -->
+    <div class="viz-tabs">
+      <button class="viz-tab active" onclick="switchTab(this,'tab-strategy')">Strategy</button>
+      <button class="viz-tab" onclick="switchTab(this,'tab-degradation')">Tyre Model</button>
+      <button class="viz-tab" onclick="switchTab(this,'tab-value')">Value Function</button>
+      <button class="viz-tab" onclick="switchTab(this,'tab-sc')">Safety Car</button>
+    </div>
+
+    <!-- Tab: Strategy (main race chart) -->
+    <div class="viz-pane active" id="tab-strategy">
+      <div class="chart-wrap">
+        <canvas id="strategy-chart"></canvas>
+        <div class="loading-overlay" id="loading-overlay">
+          <div class="spinner"></div>
+          <div class="loading-text" id="loading-text">Running Bellman solver...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Tyre degradation -->
+    <div class="viz-pane" id="tab-degradation">
+      <div class="chart-wrap"><canvas id="deg-chart"></canvas></div>
+    </div>
+
+    <!-- Tab: Value function heatmap -->
+    <div class="viz-pane" id="tab-value">
+      <div class="chart-wrap"><canvas id="value-chart"></canvas></div>
+    </div>
+
+    <!-- Tab: Safety car -->
+    <div class="viz-pane" id="tab-sc">
+      <div class="chart-wrap"><canvas id="sc-chart"></canvas></div>
+    </div>
+
+    <!-- Replay bar -->
+    <div class="replay-bar">
+      <button class="replay-btn" id="play-btn" onclick="toggleReplay()">▶ Play</button>
+      <div class="replay-progress">
+        <input type="range" id="lap-scrubber" min="1" max="52" value="1"
+               style="width:100%"
+               oninput="scrubToLap(parseInt(this.value))">
+      </div>
+      <span class="replay-lap" id="replay-lap-label">Lap 1 / 52</span>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: TELEMETRY -->
+  <div class="telemetry">
+
+    <div class="telem-section">
+      <div class="telem-label">Current Lap</div>
+      <div class="telem-big" id="t-lap">01</div>
+    </div>
+
+    <div class="telem-section">
+      <div class="telem-label">Lap Time</div>
+      <div class="telem-big" id="t-laptime">86.5<span class="telem-unit">s</span></div>
+      <div style="font-family:var(--mono);font-size:0.65rem;color:var(--green);margin-top:0.25rem;" id="t-delta">+0.00s vs new tyre</div>
+    </div>
+
+    <div class="telem-section">
+      <div class="telem-label">Tyre Wear</div>
+      <div class="tyre-viz">
+        <div class="tyre-block"><div class="tyre-fill" id="tw-fl" style="width:10%;background:var(--green)"></div></div>
+        <div class="tyre-block"><div class="tyre-fill" id="tw-fr" style="width:10%;background:var(--green)"></div></div>
+        <div class="tyre-block"><div class="tyre-fill" id="tw-rl" style="width:10%;background:var(--green)"></div></div>
+        <div class="tyre-block"><div class="tyre-fill" id="tw-rr" style="width:10%;background:var(--green)"></div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.55rem;color:var(--muted);margin-top:0.25rem;">
+        <span>FL</span><span>FR</span><span>RL</span><span>RR</span>
+      </div>
+    </div>
+
+    <div class="telem-section">
+      <div class="telem-label">Race State</div>
+      <div class="telem-row"><span class="key">Position</span><span class="val" id="t-pos">P5</span></div>
+      <div class="telem-row"><span class="key">Compound</span><span class="val warn" id="t-compound">MEDIUM</span></div>
+      <div class="telem-row"><span class="key">Tyre age</span><span class="val" id="t-tyreage">0 laps</span></div>
+      <div class="telem-row"><span class="key">Pit stops</span><span class="val" id="t-pitstops">0</span></div>
+      <div class="telem-row"><span class="key">SC active</span><span class="val" id="t-sc">NO</span></div>
+    </div>
+
+    <div class="telem-section">
+      <div class="telem-label">MDP Decision</div>
+      <div class="telem-row"><span class="key">Optimal action</span><span class="val good" id="t-action">STAY OUT</span></div>
+      <div class="telem-row"><span class="key">Q(stay out)</span><span class="val" id="t-q-stay">—</span></div>
+      <div class="telem-row"><span class="key">Q(pit medium)</span><span class="val" id="t-q-pit">—</span></div>
+      <div class="telem-row"><span class="key">Advantage</span><span class="val" id="t-advantage">—</span></div>
+    </div>
+
+    <div class="telem-section">
+      <div class="telem-label">SC Probability</div>
+      <div class="telem-row"><span class="key">This lap</span><span class="val" id="t-sc-prob">8%</span></div>
+      <div class="telem-row"><span class="key">Next 5 laps</span><span class="val" id="t-sc-window">31%</span></div>
+      <div class="telem-row"><span class="key">SC option value</span><span class="val warn" id="t-sc-val">+4.2s</span></div>
+      <div class="sc-timeline" id="sc-timeline"></div>
+    </div>
+
+    <div class="telem-section">
+      <div class="telem-label">MC Results (N=<span id="t-n-mc">1000</span>)</div>
+      <div class="telem-row"><span class="key">Mean race time</span><span class="val" id="t-mean-time">—</span></div>
+      <div class="telem-row"><span class="key">Std dev</span><span class="val" id="t-std-time">—</span></div>
+      <div class="telem-row"><span class="key">5th percentile</span><span class="val good" id="t-p5">—</span></div>
+      <div class="telem-row"><span class="key">95th percentile</span><span class="val crit" id="t-p95">—</span></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────────────────
+// SIMULATION ENGINE (JS port of core/race_sim.py logic)
+// ─────────────────────────────────────────────────────────────────────────
+
+const CIRCUITS = {
+  silverstone: { totalLaps: 52, pitDelta: 18.9, baseLap: 86.5 },
+  monza:       { totalLaps: 53, pitDelta: 23.4, baseLap: 80.9 },
+  monaco:      { totalLaps: 78, pitDelta: 22.0, baseLap: 72.9 },
+  spa:         { totalLaps: 44, pitDelta: 18.2, baseLap: 103.1 },
+};
+
+const COMPOUND_COLORS = { SOFT: '#e8220a', MEDIUM: '#f5c400', HARD: '#ddd' };
+const DEG_PARAMS = {
+  SOFT:   { k: 2.8, lam: 16, d0: 2.8 },
+  MEDIUM: { k: 2.4, lam: 26, d0: 1.9 },
+  HARD:   { k: 2.0, lam: 40, d0: 1.2 },
+};
+const SC_PROB_BASE = {
+  silverstone: 0.07, monza: 0.06, monaco: 0.12, spa: 0.09
+};
+
+// Weibull degradation
+function weibullDeg(tyreAge, compound) {
+  const p = DEG_PARAMS[compound];
+  return p.d0 * (1 - Math.exp(-Math.pow(tyreAge / p.lam, p.k)));
+}
+
+// Simple MDP policy: backward-induction approximation (JS)
+function computePolicy(circuit, compound, position, scEnabled, ucbEnabled, trackEvo) {
+  const cfg = CIRCUITS[circuit];
+  const T = cfg.totalLaps;
+  const V = new Array(T + 2).fill(null).map(() => ({}));
+
+  function stateKey(tyreAge, pit) { return `${tyreAge}_${pit}`; }
+
+  // Backward induction
+  for (let t = T; t >= 1; t--) {
+    for (let age = 0; age <= 50; age++) {
+      for (let pit = 0; pit <= 1; pit++) {
+        const key = stateKey(age, pit);
+        const deg = weibullDeg(age, compound);
+        const evo = trackEvo ? t * 0.02 : 0;
+
+        // Stay out
+        const nextAge = Math.min(age + 1, 50);
+        const futureStay = V[t + 1][stateKey(nextAge, pit)] ?? 0;
+        const scReduction = scEnabled ? 0.04 : 0;
+        const lapPenalty = Math.max(0, deg - evo) * (1 - scReduction);
+        const qStay = lapPenalty + futureStay;
+
+        // Pit (if haven't used both stops)
+        let qPit = Infinity;
+        if (pit < 1) {
+          const futurePit = V[t + 1][stateKey(0, pit + 1)] ?? 0;
+          const scFactor = scEnabled ? (1 - SC_PROB_BASE[circuit] * 5) : 1;
+          qPit = cfg.pitDelta * scFactor + futurePit;
+        }
+
+        V[t][key] = { qStay, qPit, action: qPit < qStay ? 'PIT' : 'STAY' };
+      }
+    }
+  }
+  return V;
+}
+
+// Monte Carlo simulation
+function runMonteCarlo(circuit, compound, position, nSims, scEnabled, ucbEnabled, trackEvo) {
+  const cfg = CIRCUITS[circuit];
+  const T = cfg.totalLaps;
+  const policy = computePolicy(circuit, compound, position, scEnabled, ucbEnabled, trackEvo);
+
+  const results = [];
+  for (let i = 0; i < nSims; i++) {
+    let totalTime = 0, tyreAge = 0, curCompound = compound, pits = 0;
+    const pitLaps = [], lapTimes = [], actions = [];
+    let scPeriods = [];
+
+    // Sample SC events
+    const scLaps = new Set();
+    if (scEnabled) {
+      const baseSC = SC_PROB_BASE[circuit];
+      for (let t = 1; t <= T; t++) {
+        const pSC = t <= 3 ? baseSC * 3 : baseSC;
+        if (Math.random() < pSC) {
+          const dur = Math.ceil(-Math.log(Math.random()) / 0.3);
+          for (let d = 0; d < dur && t + d <= T; d++) scLaps.add(t + d);
+        }
+      }
+    }
+
+    for (let t = 1; t <= T; t++) {
+      const scActive = scLaps.has(t);
+      const key = `${Math.min(tyreAge, 50)}_${Math.min(pits, 1)}`;
+      const state = policy[t]?.[key];
+      const action = (state && state.action === 'PIT' && pits < 2) ? 'PIT' : 'STAY';
+      actions.push(action);
+
+      if (action === 'PIT') {
+        const delta = scActive ? cfg.pitDelta * 0.28 : cfg.pitDelta;
+        totalTime += delta;
+        pits++;
+        pitLaps.push(t);
+        tyreAge = 0;
+        curCompound = pits === 1 ? 'HARD' : 'MEDIUM';
+      } else {
+        tyreAge++;
+      }
+
+      const deg = weibullDeg(tyreAge, curCompound);
+      const evo = trackEvo ? t * 0.02 : 0;
+      const noise = (Math.random() - 0.5) * 0.3;
+      const lapTime = scActive
+        ? cfg.baseLap * 1.38
+        : cfg.baseLap + Math.max(0, deg - evo) + noise;
+
+      totalTime += lapTime;
+      lapTimes.push(lapTime);
+    }
+    results.push({ totalTime, pitLaps, lapTimes, actions });
+  }
+  return results;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────
+
+let state = {
+  circuit: 'silverstone', compound: 'MEDIUM',
+  position: 5, gapAhead: 2.4, gapBehind: 1.8,
+  scEnabled: true, ucbEnabled: false, trackEvo: true,
+  nMC: 1000, currentLap: 1, playing: false,
+  results: null, playInterval: null,
+};
+
+let charts = {};
+
+// ─────────────────────────────────────────────────────────────────────────
+// UI INTERACTION
+// ─────────────────────────────────────────────────────────────────────────
+
+function selectCircuit(btn) {
+  document.querySelectorAll('.circuit-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.circuit = btn.dataset.circuit;
+  const T = parseInt(btn.dataset.laps);
+  document.getElementById('lap-scrubber').max = T;
+  runSimulation();
+}
+
+function selectCompound(btn) {
+  document.querySelectorAll('.compound-btn').forEach(b =>
+    b.className = 'compound-btn');
+  const c = btn.dataset.compound.toLowerCase();
+  btn.className = `compound-btn active-${c}`;
+  state.compound = btn.dataset.compound;
+  runSimulation();
+}
+
+function switchTab(btn, tabId) {
+  document.querySelectorAll('.viz-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.viz-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+  setTimeout(() => { Object.values(charts).forEach(c => c?.resize?.()); }, 10);
+}
+
+function toggleReplay() {
+  state.playing = !state.playing;
+  const btn = document.getElementById('play-btn');
+  if (state.playing) {
+    btn.textContent = '⏸ Pause';
+    btn.classList.add('active');
+    state.playInterval = setInterval(() => {
+      const cfg = CIRCUITS[state.circuit];
+      state.currentLap = state.currentLap >= cfg.totalLaps ? 1 : state.currentLap + 1;
+      document.getElementById('lap-scrubber').value = state.currentLap;
+      updateTelemetry(state.currentLap);
+    }, 200);
+  } else {
+    btn.textContent = '▶ Play';
+    btn.classList.remove('active');
+    clearInterval(state.playInterval);
+  }
+}
+
+function scrubToLap(lap) {
+  state.currentLap = lap;
+  updateTelemetry(lap);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// MAIN SIMULATION RUN
+// ─────────────────────────────────────────────────────────────────────────
+
+async function runSimulation() {
+  const overlay = document.getElementById('loading-overlay');
+  overlay.classList.add('visible');
+
+  state.circuit   = document.querySelector('.circuit-btn.active').dataset.circuit;
+  state.nMC       = parseInt(document.getElementById('mc-slider').value);
+  state.scEnabled = document.getElementById('sc-toggle').classList.contains('on');
+  state.ucbEnabled= document.getElementById('ucb-toggle').classList.contains('on');
+  state.trackEvo  = document.getElementById('evo-toggle').classList.contains('on');
+
+  const loadingTexts = [
+    'Fitting Weibull degradation model...',
+    'Running Bellman backward induction...',
+    'Sampling safety car events...',
+    `Running ${state.nMC.toLocaleString()} Monte Carlo races...`,
+  ];
+
+  for (let i = 0; i < loadingTexts.length; i++) {
+    document.getElementById('loading-text').textContent = loadingTexts[i];
+    await sleep(300);
+  }
+
+  const results = runMonteCarlo(
+    state.circuit, state.compound, state.position,
+    state.nMC, state.scEnabled, state.ucbEnabled, state.trackEvo
+  );
+  state.results = results;
+
+  overlay.classList.remove('visible');
+
+  drawStrategyChart(results);
+  drawDegradationChart();
+  drawValueChart();
+  drawSCChart();
+  updateSummaryStats(results);
+  updateTelemetry(state.currentLap);
+  buildSCTimeline();
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─────────────────────────────────────────────────────────────────────────
+// CHARTS
+// ─────────────────────────────────────────────────────────────────────────
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); charts[id] = null; }
+}
+
+function drawStrategyChart(results) {
+  destroyChart('strategy');
+  const cfg = CIRCUITS[state.circuit];
+  const T = cfg.totalLaps;
+
+  // Use median trajectory
+  const sorted = [...results].sort((a,b) => a.totalTime - b.totalTime);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const p5     = sorted[Math.floor(sorted.length * 0.05)];
+  const p95    = sorted[Math.floor(sorted.length * 0.95)];
+
+  const labels = Array.from({length: T}, (_, i) => i + 1);
+
+  // Cumulative time
+  let cum = 0, cumP5 = 0, cumP95 = 0;
+  const cumTimes  = median.lapTimes.map(t => (cum  += t, cum));
+  const cumP5arr  = p5.lapTimes.map(t    => (cumP5 += t, cumP5));
+  const cumP95arr = p95.lapTimes.map(t   => (cumP95+= t, cumP95));
+
+  // Pit lap markers
+  const pitData = labels.map(l => median.pitLaps.includes(l) ? cumTimes[l-1] : null);
+
+  const ctx = document.getElementById('strategy-chart').getContext('2d');
+  charts.strategy = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'P95 (worst)',
+          data: cumP95arr,
+          borderColor: 'rgba(232,34,10,0.2)',
+          backgroundColor: 'rgba(232,34,10,0.05)',
+          fill: '+1',
+          pointRadius: 0,
+          borderWidth: 1,
+          tension: 0.3,
+        },
+        {
+          label: 'Median race time (s)',
+          data: cumTimes,
+          borderColor: '#e8e8e2',
+          backgroundColor: 'transparent',
+          pointRadius: 0,
+          borderWidth: 2,
+          tension: 0.3,
+        },
+        {
+          label: 'P5 (best)',
+          data: cumP5arr,
+          borderColor: 'rgba(0,232,122,0.3)',
+          backgroundColor: 'rgba(0,232,122,0.05)',
+          fill: '-1',
+          pointRadius: 0,
+          borderWidth: 1,
+          tension: 0.3,
+        },
+        {
+          label: 'Pit stop',
+          data: pitData,
+          type: 'scatter',
+          pointRadius: 8,
+          pointHoverRadius: 10,
+          pointBackgroundColor: '#f5c400',
+          pointBorderColor: '#f5c400',
+          showLine: false,
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161616',
+          borderColor: '#2a2a2a',
+          borderWidth: 1,
+          titleColor: '#888',
+          bodyColor: '#e8e8e2',
+          titleFont: { family: 'DM Mono', size: 10 },
+          bodyFont: { family: 'DM Mono', size: 11 },
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: '#1a1a1a' },
+          ticks: { color: '#555', font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 10 },
+          title: { display: true, text: 'Lap', color: '#555', font: { family: 'DM Mono', size: 10 } }
+        },
+        y: {
+          grid: { color: '#1a1a1a' },
+          ticks: { color: '#555', font: { family: 'DM Mono', size: 10 },
+            callback: v => (v/60).toFixed(0) + 'm' },
+          title: { display: true, text: 'Cumulative race time', color: '#555', font: { family: 'DM Mono', size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+function drawDegradationChart() {
+  destroyChart('deg');
+  const T = CIRCUITS[state.circuit].totalLaps;
+  const ages = Array.from({length: 51}, (_, i) => i);
+
+  const datasets = ['SOFT', 'MEDIUM', 'HARD'].map(c => ({
+    label: c,
+    data: ages.map(a => weibullDeg(a, c)),
+    borderColor: COMPOUND_COLORS[c],
+    backgroundColor: 'transparent',
+    pointRadius: 0,
+    borderWidth: c === state.compound ? 3 : 1.5,
+    tension: 0.4,
+    borderDash: c === state.compound ? [] : [4, 4],
+  }));
+
+  const ctx = document.getElementById('deg-chart').getContext('2d');
+  charts.deg = new Chart(ctx, {
+    type: 'line',
+    data: { labels: ages, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#888', font: { family: 'DM Mono', size: 10 }, boxWidth: 12 }
+        },
+        tooltip: {
+          backgroundColor: '#161616', borderColor: '#2a2a2a', borderWidth: 1,
+          titleColor: '#888', bodyColor: '#e8e8e2',
+          titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Mono', size: 11 },
+        }
+      },
+      scales: {
+        x: { grid: { color: '#1a1a1a' }, ticks: { color: '#555', font: { family: 'DM Mono', size: 10 } },
+          title: { display: true, text: 'Tyre age (laps)', color: '#555', font: { family: 'DM Mono', size: 10 } } },
+        y: { grid: { color: '#1a1a1a' }, ticks: { color: '#555', font: { family: 'DM Mono', size: 10 },
+          callback: v => '+' + v.toFixed(1) + 's' },
+          title: { display: true, text: 'Lap time delta (s)', color: '#555', font: { family: 'DM Mono', size: 10 } } }
+      }
+    }
+  });
+}
+
+function drawValueChart() {
+  destroyChart('value');
+  const T = CIRCUITS[state.circuit].totalLaps;
+
+  // Approximate value function V*(lap, tyreAge) for selected compound
+  const laps = Array.from({length: T}, (_, i) => i + 1);
+  const ages  = [0, 5, 10, 15, 20, 25, 30];
+
+  const datasets = ages.map(age => ({
+    label: `Age ${age}`,
+    data: laps.map(l => {
+      const remaining = T - l;
+      const deg = weibullDeg(age + remaining, state.compound);
+      return -(deg * remaining);  // simplified V*
+    }),
+    borderColor: `hsl(${240 - age * 8}, 60%, ${50 + age * 1.5}%)`,
+    backgroundColor: 'transparent',
+    pointRadius: 0,
+    borderWidth: 1.5,
+    tension: 0.4,
+  }));
+
+  const ctx = document.getElementById('value-chart').getContext('2d');
+  charts.value = new Chart(ctx, {
+    type: 'line',
+    data: { labels: laps, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#888', font: { family: 'DM Mono', size: 10 }, boxWidth: 10 }
+        },
+        tooltip: {
+          backgroundColor: '#161616', borderColor: '#2a2a2a', borderWidth: 1,
+          titleColor: '#888', bodyColor: '#e8e8e2',
+          titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Mono', size: 11 },
+        }
+      },
+      scales: {
+        x: { grid: { color: '#1a1a1a' }, ticks: { color: '#555', font: { family: 'DM Mono', size: 10 } },
+          title: { display: true, text: 'Race lap', color: '#555', font: { family: 'DM Mono', size: 10 } } },
+        y: { grid: { color: '#1a1a1a' }, ticks: { color: '#555', font: { family: 'DM Mono', size: 10 } },
+          title: { display: true, text: 'V*(s,t) — expected remaining time loss', color: '#555', font: { family: 'DM Mono', size: 10 } } }
+      }
+    }
+  });
+}
+
+function drawSCChart() {
+  destroyChart('sc');
+  const T = CIRCUITS[state.circuit].totalLaps;
+  const base = SC_PROB_BASE[state.circuit];
+  const probs = Array.from({length: T}, (_, i) => {
+    const l = i + 1;
+    return l === 1 ? base * 4 : l <= 3 ? base * 2 : base * Math.max(0.5, 1 - 0.003 * Math.max(0, l - 40));
+  });
+
+  const ctx = document.getElementById('sc-chart').getContext('2d');
+  charts.sc = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: Array.from({length: T}, (_, i) => i + 1),
+      datasets: [{
+        label: 'P(SC on lap t)',
+        data: probs.map(p => +(p * 100).toFixed(2)),
+        backgroundColor: probs.map(p =>
+          p > 0.15 ? 'rgba(232,34,10,0.7)' :
+          p > 0.10 ? 'rgba(245,196,0,0.5)' : 'rgba(74,158,255,0.35)'
+        ),
+        borderWidth: 0,
+        borderRadius: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161616', borderColor: '#2a2a2a', borderWidth: 1,
+          titleColor: '#888', bodyColor: '#e8e8e2',
+          titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Mono', size: 11 },
+          callbacks: { label: ctx => `P = ${ctx.parsed.y.toFixed(1)}%` }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#1a1a1a' }, ticks: { color: '#555', font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 12 },
+          title: { display: true, text: 'Lap', color: '#555', font: { family: 'DM Mono', size: 10 } } },
+        y: { grid: { color: '#1a1a1a' }, ticks: { color: '#555', font: { family: 'DM Mono', size: 10 }, callback: v => v + '%' },
+          title: { display: true, text: 'Deployment probability', color: '#555', font: { family: 'DM Mono', size: 10 } } }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// TELEMETRY UPDATES
+// ─────────────────────────────────────────────────────────────────────────
+
+function updateTelemetry(lap) {
+  if (!state.results) return;
+  const cfg = CIRCUITS[state.circuit];
+  const T = cfg.totalLaps;
+  const median = [...state.results].sort((a,b) => a.totalTime - b.totalTime)[Math.floor(state.results.length / 2)];
+
+  const lapIdx = Math.min(lap - 1, median.lapTimes.length - 1);
+  const lapTime = median.lapTimes[lapIdx] ?? cfg.baseLap;
+  const tyreAge = median.pitLaps.length > 0
+    ? lap - median.pitLaps[median.pitLaps.filter(p => p <= lap).length - 1] || lap
+    : lap;
+  const pitsUsed = median.pitLaps.filter(p => p <= lap).length;
+  const curCompound = pitsUsed >= 2 ? 'HARD' : pitsUsed === 1 ? 'HARD' : state.compound;
+
+  const deg = weibullDeg(Math.max(0, tyreAge - 1), curCompound);
+  const wearPct = Math.min(100, (deg / DEG_PARAMS[curCompound].d0) * 100);
+  const wearColor = wearPct > 70 ? 'var(--red)' : wearPct > 40 ? 'var(--yellow)' : 'var(--green)';
+
+  // Check if this is a pit lap
+  const isPitLap = median.pitLaps.includes(lap);
+  const isUrgent = deg > DEG_PARAMS[curCompound].d0 * 0.75;
+
+  // Update DOM
+  document.getElementById('t-lap').textContent = String(lap).padStart(2, '0');
+  document.getElementById('t-laptime').innerHTML = lapTime.toFixed(3) + '<span class="telem-unit">s</span>';
+  document.getElementById('t-delta').textContent = '+' + deg.toFixed(3) + 's vs new tyre';
+  document.getElementById('t-delta').style.color = isUrgent ? 'var(--red)' : wearPct > 40 ? 'var(--yellow)' : 'var(--green)';
+
+  // Tyre wear bars
+  ['tw-fl','tw-fr','tw-rl','tw-rr'].forEach((id, i) => {
+    const noise = [1, 0.97, 0.99, 0.96][i];
+    const el = document.getElementById(id);
+    el.style.width = (wearPct * noise) + '%';
+    el.style.background = wearColor;
+  });
+
+  document.getElementById('t-pos').textContent = 'P' + state.position;
+  document.getElementById('t-compound').textContent = curCompound;
+  document.getElementById('t-compound').className = 'val ' + (curCompound === 'SOFT' ? 'crit' : curCompound === 'MEDIUM' ? 'warn' : '');
+  document.getElementById('t-tyreage').textContent = Math.max(0, tyreAge - 1) + ' laps';
+  document.getElementById('t-pitstops').textContent = pitsUsed;
+  document.getElementById('t-sc').textContent = 'NO'; // simplified
+
+  // MDP decision
+  const qStay = -(deg + 0.1);
+  const qPit  = -(cfg.pitDelta - deg * (T - lap));
+  const action = isPitLap || isUrgent ? (isUrgent ? 'BOX BOX BOX' : 'PIT') : 'STAY OUT';
+  document.getElementById('t-action').textContent = action;
+  document.getElementById('t-action').className = 'val ' + (isUrgent ? 'crit' : isPitLap ? 'warn' : 'good');
+  document.getElementById('t-q-stay').textContent = qStay.toFixed(3) + 's';
+  document.getElementById('t-q-pit').textContent  = qPit.toFixed(3) + 's';
+  document.getElementById('t-advantage').textContent = (qStay - qPit).toFixed(2) + 's';
+
+  // SC probability
+  const base = SC_PROB_BASE[state.circuit];
+  const pSC = lap <= 3 ? base * (4 - lap * 0.5) : base;
+  const pWindow = 1 - Math.pow(1 - base, 5);
+  document.getElementById('t-sc-prob').textContent = (pSC * 100).toFixed(1) + '%';
+  document.getElementById('t-sc-window').textContent = (pWindow * 100).toFixed(0) + '%';
+  document.getElementById('t-sc-val').textContent = '+' + (pWindow * (cfg.pitDelta - 6)).toFixed(1) + 's';
+
+  // Pit banner
+  const banner = document.getElementById('pit-banner');
+  document.getElementById('banner-lap').textContent = `Lap ${lap} / ${T}`;
+  if (isUrgent) {
+    banner.className = 'pit-banner urgent';
+    document.getElementById('banner-text').textContent = '⚠ BOX BOX BOX — cliff threshold reached';
+  } else if (isPitLap) {
+    banner.className = 'pit-banner pit';
+    document.getElementById('banner-text').textContent = '● PIT THIS LAP — optimal window';
+  } else {
+    banner.className = 'pit-banner stay';
+    document.getElementById('banner-text').textContent = '● STAY OUT — optimal on current compound';
+  }
+
+  // Replay label
+  document.getElementById('replay-lap-label').textContent = `Lap ${lap} / ${T}`;
+}
+
+function updateSummaryStats(results) {
+  const times = results.map(r => r.totalTime).sort((a,b) => a-b);
+  const mean = times.reduce((a,b) => a+b, 0) / times.length;
+  const std  = Math.sqrt(times.map(t => (t-mean)**2).reduce((a,b)=>a+b,0) / times.length);
+  const p5   = times[Math.floor(times.length * 0.05)];
+  const p95  = times[Math.floor(times.length * 0.95)];
+
+  const fmt = s => {
+    const m = Math.floor(s / 60);
+    const sec = (s % 60).toFixed(1);
+    return `${m}m ${sec}s`;
+  };
+  document.getElementById('t-mean-time').textContent = fmt(mean);
+  document.getElementById('t-std-time').textContent  = std.toFixed(1) + 's';
+  document.getElementById('t-p5').textContent  = fmt(p5);
+  document.getElementById('t-p95').textContent = fmt(p95);
+  document.getElementById('t-n-mc').textContent = results.length.toLocaleString();
+}
+
+function buildSCTimeline() {
+  const T = CIRCUITS[state.circuit].totalLaps;
+  const base = SC_PROB_BASE[state.circuit];
+  const container = document.getElementById('sc-timeline');
+  container.innerHTML = '';
+  for (let l = 1; l <= Math.min(T, 52); l++) {
+    const p = l <= 3 ? base * 3 : base;
+    const div = document.createElement('div');
+    div.className = 'sc-lap';
+    if (Math.random() < p && state.scEnabled) div.classList.add('sc-active');
+    div.title = `Lap ${l}`;
+    container.appendChild(div);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────
+runSimulation();
+</script>
+</body>
+</html>
