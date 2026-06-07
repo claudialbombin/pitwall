@@ -107,8 +107,8 @@ from scipy import stats
 # Prior belief: safety car appears on ~8% of laps on average.
 # Beta(2, 23) has mean = 2/(2+23) ≈ 0.08 and is weakly informative.
 
-_PRIOR_ALPHA = 2.0    # pseudo-successes (SC deployments)
-_PRIOR_BETA  = 23.0   # pseudo-failures (no SC)
+_PRIOR_ALPHA = 2.0  # pseudo-successes (SC deployments)
+_PRIOR_BETA = 23.0  # pseudo-failures (no SC)
 
 # Default p_clear per lap (Geometric duration model).
 # Historical average: SC lasts ~3.5 laps → p_clear ≈ 1/3.5 ≈ 0.29
@@ -131,32 +131,32 @@ _CIRCUIT_DATA: dict[str, dict] = {
     "monaco": {
         "n_races": 6,
         "p_deploy_baseline": 0.12,
-        "p_clear_per_lap":   0.22,   # SC lasts longer in Monaco
-        "mean_duration":     4.5,
+        "p_clear_per_lap": 0.22,  # SC lasts longer in Monaco
+        "mean_duration": 4.5,
     },
     "monza": {
         "n_races": 6,
         "p_deploy_baseline": 0.06,
-        "p_clear_per_lap":   0.33,
-        "mean_duration":     3.0,
+        "p_clear_per_lap": 0.33,
+        "mean_duration": 3.0,
     },
     "silverstone": {
         "n_races": 7,
         "p_deploy_baseline": 0.07,
-        "p_clear_per_lap":   0.30,
-        "mean_duration":     3.3,
+        "p_clear_per_lap": 0.30,
+        "mean_duration": 3.3,
     },
     "spa": {
         "n_races": 6,
         "p_deploy_baseline": 0.09,
-        "p_clear_per_lap":   0.28,
-        "mean_duration":     3.6,
+        "p_clear_per_lap": 0.28,
+        "mean_duration": 3.6,
     },
     "default": {
         "n_races": 0,
         "p_deploy_baseline": 0.08,
-        "p_clear_per_lap":   _DEFAULT_P_CLEAR,
-        "mean_duration":     3.5,
+        "p_clear_per_lap": _DEFAULT_P_CLEAR,
+        "mean_duration": 3.5,
     },
 }
 
@@ -164,6 +164,7 @@ _CIRCUIT_DATA: dict[str, dict] = {
 # ---------------------------------------------------------------------------
 # Bayesian Beta-Binomial model for deployment probability
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class BayesianLapProbability:
@@ -175,14 +176,15 @@ class BayesianLapProbability:
       n    = number of observed races
       k    = number of races with SC on this lap
     """
+
     alpha: float = _PRIOR_ALPHA
-    beta:  float = _PRIOR_BETA
+    beta: float = _PRIOR_BETA
 
     def update(self, n_races: int, n_sc_events: int) -> "BayesianLapProbability":
         """Update posterior with observed data."""
         return BayesianLapProbability(
             alpha=self.alpha + n_sc_events,
-            beta=self.beta  + (n_races - n_sc_events),
+            beta=self.beta + (n_races - n_sc_events),
         )
 
     @property
@@ -215,6 +217,7 @@ class BayesianLapProbability:
 # Safety Car Model
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class SafetyCarModel:
     """
@@ -235,6 +238,7 @@ class SafetyCarModel:
         p = model.p_clear(lap=5)      # P(SC clears on lap 5)
         d = model.sample_duration()   # Random SC duration (laps)
     """
+
     circuit: str = "default"
     total_laps: int = 66
 
@@ -243,7 +247,7 @@ class SafetyCarModel:
         default_factory=list, init=False, repr=False
     )
     _p_clear: float = field(default=_DEFAULT_P_CLEAR, init=False)
-    _fitted:  bool  = field(default=False, init=False, repr=False)
+    _fitted: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self) -> None:
         circuit_data = _CIRCUIT_DATA.get(self.circuit, _CIRCUIT_DATA["default"])
@@ -268,7 +272,7 @@ class SafetyCarModel:
             # α/(α+β) = p, α+β = 10 (concentration)
             concentration = 10.0
             alpha = p * concentration
-            beta  = (1 - p) * concentration
+            beta = (1 - p) * concentration
             self._lap_probs.append(BayesianLapProbability(alpha=alpha, beta=beta))
 
     # ------------------------------------------------------------------
@@ -304,7 +308,9 @@ class SafetyCarModel:
                 sc_laps = self._extract_sc_laps(session)
                 all_sc_laps.append(sc_laps)
             except Exception as e:
-                warnings.warn(f"Could not load {self.circuit} {yr}: {e}", RuntimeWarning)
+                warnings.warn(
+                    f"Could not load {self.circuit} {yr}: {e}", RuntimeWarning
+                )
 
         if not all_sc_laps:
             warnings.warn("No sessions loaded. Using prior only.", RuntimeWarning)
@@ -414,8 +420,9 @@ class SafetyCarModel:
     # Sampling (used by race_sim.py Monte Carlo)
     # ------------------------------------------------------------------
 
-    def sample_sc_events(self, rng: Optional[np.random.Generator] = None
-                         ) -> list[tuple[int, int]]:
+    def sample_sc_events(
+        self, rng: Optional[np.random.Generator] = None
+    ) -> list[tuple[int, int]]:
         """
         Sample a complete race's SC events from the stochastic model.
 
@@ -431,7 +438,7 @@ class SafetyCarModel:
 
         events: list[tuple[int, int]] = []
         sc_active = False
-        sc_start  = 0
+        sc_start = 0
 
         for lap in range(1, self.total_laps + 1):
             if sc_active:
@@ -444,7 +451,7 @@ class SafetyCarModel:
                 p = self._lap_probs[lap - 1].mean
                 if rng.random() < p:
                     sc_active = True
-                    sc_start  = lap
+                    sc_start = lap
 
         # Handle SC active at end of race
         if sc_active:
@@ -467,9 +474,13 @@ class SafetyCarModel:
     # Strategic analysis utilities
     # ------------------------------------------------------------------
 
-    def pit_window_value(self, lap: int, pit_delta_sc: float = 6.0,
-                         pit_delta_normal: float = 21.0,
-                         laps_remaining: int = 30) -> float:
+    def pit_window_value(
+        self,
+        lap: int,
+        pit_delta_sc: float = 6.0,
+        pit_delta_normal: float = 21.0,
+        laps_remaining: int = 30,
+    ) -> float:
         """
         Expected value of having a SC window available at lap t.
 
@@ -491,10 +502,12 @@ class SafetyCarModel:
         laps_remaining   : number of laps left to benefit from SC
         """
         # Probability of at least one SC in the remaining window
-        p_no_sc = np.prod([
-            1.0 - self._lap_probs[t - 1].mean
-            for t in range(lap, min(lap + laps_remaining, self.total_laps) + 1)
-        ])
+        p_no_sc = np.prod(
+            [
+                1.0 - self._lap_probs[t - 1].mean
+                for t in range(lap, min(lap + laps_remaining, self.total_laps) + 1)
+            ]
+        )
         p_sc_in_window = 1.0 - p_no_sc
 
         savings = pit_delta_normal - pit_delta_sc
@@ -510,12 +523,12 @@ class SafetyCarModel:
     def summary(self) -> dict:
         """Human-readable model summary."""
         return {
-            "circuit":           self.circuit,
-            "total_laps":        self.total_laps,
-            "fitted":            self._fitted,
-            "p_clear_per_lap":   round(self._p_clear, 3),
-            "mean_sc_duration":  round(1.0 / self._p_clear, 1),
-            "expected_sc_laps":  round(self.expected_sc_laps(), 1),
-            "peak_risk_lap":     int(np.argmax([p.mean for p in self._lap_probs])) + 1,
-            "lap1_p_deploy":     round(self._lap_probs[0].mean, 3),
+            "circuit": self.circuit,
+            "total_laps": self.total_laps,
+            "fitted": self._fitted,
+            "p_clear_per_lap": round(self._p_clear, 3),
+            "mean_sc_duration": round(1.0 / self._p_clear, 1),
+            "expected_sc_laps": round(self.expected_sc_laps(), 1),
+            "peak_risk_lap": int(np.argmax([p.mean for p in self._lap_probs])) + 1,
+            "lap1_p_deploy": round(self._lap_probs[0].mean, 3),
         }

@@ -68,35 +68,54 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ── Paths ──
-ROOT      = Path(__file__).parent.parent
-RAW_DIR   = ROOT / "data" / "raw"
-PROC_DIR  = ROOT / "data" / "processed"
+ROOT = Path(__file__).parent.parent
+RAW_DIR = ROOT / "data" / "raw"
+PROC_DIR = ROOT / "data" / "processed"
 RAW_DIR.mkdir(parents=True, exist_ok=True)
 PROC_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Circuits and years to fetch ──
 DEFAULT_CIRCUITS = [
-    "Bahrain", "Saudi Arabia", "Australia", "Azerbaijan", "Miami",
-    "Monaco", "Spain", "Canada", "Austria", "British",
-    "Hungary", "Belgium", "Netherlands", "Italy", "Singapore",
-    "Japan", "Qatar", "United States", "Mexico", "Brazil",
-    "Las Vegas", "Abu Dhabi",
+    "Bahrain",
+    "Saudi Arabia",
+    "Australia",
+    "Azerbaijan",
+    "Miami",
+    "Monaco",
+    "Spain",
+    "Canada",
+    "Austria",
+    "British",
+    "Hungary",
+    "Belgium",
+    "Netherlands",
+    "Italy",
+    "Singapore",
+    "Japan",
+    "Qatar",
+    "United States",
+    "Mexico",
+    "Brazil",
+    "Las Vegas",
+    "Abu Dhabi",
 ]
 
 DEFAULT_YEARS = [2021, 2022, 2023]
 
 # Track status codes in FastF1 laps
-SC_STATUS_CODES  = {"4", "6", "7"}   # Safety Car
-VSC_STATUS_CODES = {"5"}             # Virtual Safety Car
-GREEN_CODE       = "1"
+SC_STATUS_CODES = {"4", "6", "7"}  # Safety Car
+VSC_STATUS_CODES = {"5"}  # Virtual Safety Car
+GREEN_CODE = "1"
 
 
 # ---------------------------------------------------------------------------
 # Core download function
 # ---------------------------------------------------------------------------
 
-def fetch_session(year: int, circuit: str,
-                  session_type: str = "R") -> pd.DataFrame | None:
+
+def fetch_session(
+    year: int, circuit: str, session_type: str = "R"
+) -> pd.DataFrame | None:
     """
     Download a single session from FastF1 and return lap data as a DataFrame.
 
@@ -111,10 +130,7 @@ def fetch_session(year: int, circuit: str,
     try:
         import fastf1  # type: ignore[import]
     except ImportError:
-        raise ImportError(
-            "fastf1 is required. Install with:\n"
-            "  pip install fastf1"
-        )
+        raise ImportError("fastf1 is required. Install with:\n  pip install fastf1")
 
     fastf1.Cache.enable_cache(str(RAW_DIR))
 
@@ -133,19 +149,19 @@ def fetch_session(year: int, circuit: str,
     # ── Basic cleaning ──
     laps["LapTimeSec"] = laps["LapTime"].dt.total_seconds()
     laps = laps[laps["LapTimeSec"].notna()]
-    laps = laps[laps["LapTimeSec"] > 60]    # sanity: no lap under 1 minute
-    laps = laps[laps["LapTimeSec"] < 300]   # sanity: no lap over 5 minutes
+    laps = laps[laps["LapTimeSec"] > 60]  # sanity: no lap under 1 minute
+    laps = laps[laps["LapTimeSec"] < 300]  # sanity: no lap over 5 minutes
     laps = laps[laps["TyreLife"].notna()]
     laps = laps[laps["Compound"].notna()]
     laps["Compound"] = laps["Compound"].str.upper()
 
     # ── Annotate SC / VSC ──
-    laps["SC"]  = laps["TrackStatus"].isin(SC_STATUS_CODES)
+    laps["SC"] = laps["TrackStatus"].isin(SC_STATUS_CODES)
     laps["VSC"] = laps["TrackStatus"].isin(VSC_STATUS_CODES)
     laps["GreenFlag"] = laps["TrackStatus"] == GREEN_CODE
 
     # ── Add race/circuit metadata ──
-    laps["Year"]    = year
+    laps["Year"] = year
     laps["Circuit"] = circuit
 
     # ── Merge weather (nearest timestamp) ──
@@ -156,8 +172,7 @@ def fetch_session(year: int, circuit: str,
     return laps
 
 
-def _merge_weather(laps: pd.DataFrame,
-                   weather: pd.DataFrame) -> pd.DataFrame:
+def _merge_weather(laps: pd.DataFrame, weather: pd.DataFrame) -> pd.DataFrame:
     """Merge nearest weather reading onto each lap by timestamp."""
     if "Time" not in weather.columns:
         return laps
@@ -180,9 +195,10 @@ def _merge_weather(laps: pd.DataFrame,
 # Clean air extraction
 # ---------------------------------------------------------------------------
 
-def extract_clean_laps(laps: pd.DataFrame,
-                       min_gap_ahead: float = 2.0,
-                       max_tyre_age_baseline: int = 3) -> pd.DataFrame:
+
+def extract_clean_laps(
+    laps: pd.DataFrame, min_gap_ahead: float = 2.0, max_tyre_age_baseline: int = 3
+) -> pd.DataFrame:
     """
     Filter to laps driven in clean air under green flag conditions.
 
@@ -213,17 +229,16 @@ def extract_clean_laps(laps: pd.DataFrame,
         return g
 
     # Group by driver and stint (identified by TyreLife reset)
-    clean["Stint"] = (clean.groupby("Driver")["TyreLife"]
-                           .transform(lambda x: (x.diff() < 0).cumsum()))
+    clean["Stint"] = clean.groupby("Driver")["TyreLife"].transform(
+        lambda x: (x.diff() < 0).cumsum()
+    )
 
-    clean = (clean
-             .groupby(["Driver", "Stint"], group_keys=False)
-             .apply(add_baseline))
+    clean = clean.groupby(["Driver", "Stint"], group_keys=False).apply(add_baseline)
 
     clean = clean[
-        clean["LapTimeDelta"].notna() &
-        (clean["LapTimeDelta"] >= -0.5) &   # sanity: not faster than baseline
-        (clean["LapTimeDelta"] < 8.0)       # sanity: not more than 8s degraded
+        clean["LapTimeDelta"].notna()
+        & (clean["LapTimeDelta"] >= -0.5)  # sanity: not faster than baseline
+        & (clean["LapTimeDelta"] < 8.0)  # sanity: not more than 8s degraded
     ]
 
     log.info(f"  → {len(clean):,} clean air laps after filtering")
@@ -234,6 +249,7 @@ def extract_clean_laps(laps: pd.DataFrame,
 # Aggregate per compound
 # ---------------------------------------------------------------------------
 
+
 def aggregate_compound(clean: pd.DataFrame) -> pd.DataFrame:
     """
     Aggregate clean laps into (compound, tyre_age) → (mean_delta, std_delta, n).
@@ -242,18 +258,19 @@ def aggregate_compound(clean: pd.DataFrame) -> pd.DataFrame:
     Each row represents the average lap time delta across all drivers and
     races at a given compound × tyre_age combination.
     """
-    agg = (clean
-           .groupby(["Circuit", "Year", "Compound", "TyreLife"])
-           ["LapTimeDelta"]
-           .agg(mean_delta="mean", std_delta="std", n="count")
-           .reset_index()
-           .rename(columns={"TyreLife": "TyreAge"}))
+    agg = (
+        clean.groupby(["Circuit", "Year", "Compound", "TyreLife"])["LapTimeDelta"]
+        .agg(mean_delta="mean", std_delta="std", n="count")
+        .reset_index()
+        .rename(columns={"TyreLife": "TyreAge"})
+    )
     return agg
 
 
 # ---------------------------------------------------------------------------
 # Safety car event extraction
 # ---------------------------------------------------------------------------
+
 
 def extract_sc_events(laps: pd.DataFrame) -> pd.DataFrame:
     """
@@ -268,11 +285,11 @@ def extract_sc_events(laps: pd.DataFrame) -> pd.DataFrame:
 
     for (year, circuit), race_laps in laps.groupby(["Year", "Circuit"]):
         race_laps = race_laps.sort_values("LapNumber")
-        sc_laps  = race_laps[race_laps["SC"]]["LapNumber"].unique()
+        sc_laps = race_laps[race_laps["SC"]]["LapNumber"].unique()
         vsc_laps = race_laps[race_laps["VSC"]]["LapNumber"].unique()
 
         for code, lap_set, sc_type in [
-            ("SC",  sc_laps,  "SAFETY_CAR"),
+            ("SC", sc_laps, "SAFETY_CAR"),
             ("VSC", vsc_laps, "VIRTUAL_SC"),
         ]:
             if len(lap_set) == 0:
@@ -280,23 +297,31 @@ def extract_sc_events(laps: pd.DataFrame) -> pd.DataFrame:
             sorted_laps = sorted(lap_set)
             # Group consecutive laps into events
             start = sorted_laps[0]
-            prev  = sorted_laps[0]
+            prev = sorted_laps[0]
             for lap in sorted_laps[1:]:
                 if lap != prev + 1:
-                    records.append({
-                        "Year": year, "Circuit": circuit,
-                        "StartLap": start, "EndLap": prev,
-                        "Duration": prev - start + 1,
-                        "SCType": sc_type,
-                    })
+                    records.append(
+                        {
+                            "Year": year,
+                            "Circuit": circuit,
+                            "StartLap": start,
+                            "EndLap": prev,
+                            "Duration": prev - start + 1,
+                            "SCType": sc_type,
+                        }
+                    )
                     start = lap
                 prev = lap
-            records.append({
-                "Year": year, "Circuit": circuit,
-                "StartLap": start, "EndLap": prev,
-                "Duration": prev - start + 1,
-                "SCType": sc_type,
-            })
+            records.append(
+                {
+                    "Year": year,
+                    "Circuit": circuit,
+                    "StartLap": start,
+                    "EndLap": prev,
+                    "Duration": prev - start + 1,
+                    "SCType": sc_type,
+                }
+            )
 
     return pd.DataFrame(records)
 
@@ -305,9 +330,12 @@ def extract_sc_events(laps: pd.DataFrame) -> pd.DataFrame:
 # Main pipeline
 # ---------------------------------------------------------------------------
 
-def run_pipeline(years: list[int] = DEFAULT_YEARS,
-                 circuits: list[str] | None = None,
-                 overwrite: bool = False) -> None:
+
+def run_pipeline(
+    years: list[int] = DEFAULT_YEARS,
+    circuits: list[str] | None = None,
+    overwrite: bool = False,
+) -> None:
     """
     Run the full data pipeline for the given years and circuits.
 
@@ -320,8 +348,8 @@ def run_pipeline(years: list[int] = DEFAULT_YEARS,
         circuits = DEFAULT_CIRCUITS
 
     out_clean = PROC_DIR / "laps_clean.parquet"
-    out_deg   = PROC_DIR / "tyre_degradation.parquet"
-    out_sc    = PROC_DIR / "safety_car_events.parquet"
+    out_deg = PROC_DIR / "tyre_degradation.parquet"
+    out_sc = PROC_DIR / "safety_car_events.parquet"
 
     if not overwrite and out_clean.exists():
         log.info("Processed data already exists. Use --overwrite to re-fetch.")
@@ -339,7 +367,9 @@ def run_pipeline(years: list[int] = DEFAULT_YEARS,
                 all_laps.append(clean)
 
     if not all_laps:
-        log.error("No laps fetched. Check your FastF1 installation and internet connection.")
+        log.error(
+            "No laps fetched. Check your FastF1 installation and internet connection."
+        )
         return
 
     combined = pd.concat(all_laps, ignore_index=True)
@@ -379,16 +409,23 @@ if __name__ == "__main__":
         description="Fetch and process F1 telemetry data via FastF1."
     )
     parser.add_argument(
-        "--years", nargs="+", type=int, default=DEFAULT_YEARS,
-        help="Seasons to download (e.g. --years 2022 2023)"
+        "--years",
+        nargs="+",
+        type=int,
+        default=DEFAULT_YEARS,
+        help="Seasons to download (e.g. --years 2022 2023)",
     )
     parser.add_argument(
-        "--circuits", nargs="+", type=str, default=None,
-        help="Circuits to include (default: all 2023 calendar)"
+        "--circuits",
+        nargs="+",
+        type=str,
+        default=None,
+        help="Circuits to include (default: all 2023 calendar)",
     )
     parser.add_argument(
-        "--overwrite", action="store_true",
-        help="Re-download even if processed data already exists"
+        "--overwrite",
+        action="store_true",
+        help="Re-download even if processed data already exists",
     )
     args = parser.parse_args()
 
