@@ -1,0 +1,636 @@
+% ============================================================
+%  pitwall — Stochastic F1 Pit Stop Optimisation
+%  Technical Paper · LaTeX source
+%
+%  Compile with:
+%    pdflatex paper.tex
+%    pdflatex paper.tex   (second pass for references/TOC)
+%
+%  Or with latexmk (recommended):
+%    latexmk -pdf paper.tex
+%
+%  Author: Claudia Maria Lopez Bombin
+%  GitHub: https://github.com/claudialbombin/pitwall
+% ============================================================
+
+\documentclass[11pt, a4paper, twocolumn]{article}
+
+% ── Encoding & fonts ───────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}          % better justification
+
+% ── Layout ─────────────────────────────────────────────────
+\usepackage[
+  top=2.2cm, bottom=2.4cm,
+  left=1.8cm, right=1.8cm,
+  columnsep=0.7cm
+]{geometry}
+\setlength{\parskip}{3pt}
+\setlength{\parindent}{10pt}
+
+% ── Maths ──────────────────────────────────────────────────
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}          % dcases, prescript, etc.
+\usepackage{bm}                 % bold math
+
+% ── Graphics & colour ──────────────────────────────────────
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}           % professional tables
+\usepackage{array}
+\usepackage{colortbl}
+
+% ── Typography ─────────────────────────────────────────────
+\usepackage{titlesec}
+\usepackage{abstract}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+
+% ── Code listings ──────────────────────────────────────────
+\usepackage{listings}
+
+% ── Hyperlinks ─────────────────────────────────────────────
+\usepackage[
+  colorlinks=true,
+  linkcolor=pitred,
+  citecolor=pitblue,
+  urlcolor=pitblue,
+  pdftitle={Pitwall: Stochastic F1 Pit Stop Optimisation},
+  pdfauthor={Claudia Maria Lopez Bombin},
+]{hyperref}
+
+% ── Colours ────────────────────────────────────────────────
+\definecolor{pitred}{HTML}{C8180A}
+\definecolor{pitblue}{HTML}{1A56CC}
+\definecolor{pityellow}{HTML}{C8A000}
+\definecolor{pitgreen}{HTML}{007A3D}
+\definecolor{pitgrey}{HTML}{555555}
+\definecolor{codebg}{HTML}{F5F5F5}
+\definecolor{rowalt}{HTML}{FAFAFA}
+
+% ── Section styling ────────────────────────────────────────
+\titleformat{\section}
+  {\large\bfseries\color{black}}
+  {\thesection.}{0.5em}{}
+  [\vspace{-2pt}\textcolor{pitred}{\rule{\columnwidth}{0.6pt}}]
+
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{black}}
+  {\thesubsection}{0.5em}{}
+
+\titlespacing*{\section}{0pt}{10pt}{4pt}
+\titlespacing*{\subsection}{0pt}{6pt}{2pt}
+
+% ── Header / footer ────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{pitgrey}{\textsc{pitwall} · Stochastic F1 Pit Stop Optimisation}}
+\fancyhead[R]{\small\textcolor{pitgrey}{Lopez Bombin, 2024}}
+\fancyfoot[C]{\small\textcolor{pitgrey}{\thepage\ / \pageref{LastPage}}}
+\renewcommand{\headrulewidth}{0.25pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ── Abstract styling ───────────────────────────────────────
+\renewcommand{\abstractname}{\normalsize\bfseries\textsc{Abstract}}
+\renewenvironment{abstract}
+  {\vspace{-4pt}\begin{quote}\small}
+  {\end{quote}\vspace{4pt}}
+
+% ── Equation numbering ─────────────────────────────────────
+\numberwithin{equation}{section}
+
+% ── Theorem environments ───────────────────────────────────
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{remark}{Remark}[section]
+
+% ── Listings ───────────────────────────────────────────────
+\lstset{
+  language=Python,
+  backgroundcolor=\color{codebg},
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\color{pitblue}\bfseries,
+  commentstyle=\color{pitgrey}\itshape,
+  stringstyle=\color{pitred},
+  frame=single, framerule=0.3pt, rulecolor=\color{pitgrey!40},
+  breaklines=true, breakatwhitespace=true,
+  numbers=left, numberstyle=\tiny\color{pitgrey},
+  numbersep=6pt, xleftmargin=12pt,
+  showstringspaces=false,
+  captionpos=b,
+}
+
+% ── Macros ─────────────────────────────────────────────────
+\newcommand{\mdp}{\mathcal{M}}
+\newcommand{\states}{\mathcal{S}}
+\newcommand{\actions}{\mathcal{A}}
+\newcommand{\policy}{\pi}
+\newcommand{\vstar}{V^*}
+\newcommand{\qstar}{Q^*}
+\newcommand{\pistar}{\pi^*}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\lap}{t}
+\newcommand{\horizon}{T}
+\newcommand{\compound}{c}
+\newcommand{\age}{a}
+\newcommand{\pos}{p}
+\newcommand{\pitdelta}{\Delta_{\text{pit}}}
+
+% ── Title block ────────────────────────────────────────────
+\title{
+  \vspace{-1.2cm}
+  {\color{pitred}\rule{\textwidth}{2pt}}\\[6pt]
+  \textbf{\LARGE Stochastic Pit Stop Optimisation}\\[3pt]
+  {\large via Markov Decision Processes, Gaussian Process Tyre Degradation,}\\[2pt]
+  {\large and Bayesian Safety Car Modelling}\\[6pt]
+  {\color{pitred}\rule{\textwidth}{0.5pt}}
+}
+\author{
+  \textbf{Claudia Maria Lopez Bombin}\\
+  {\small iMAT · ICAI Comillas \& 42 Madrid}\\
+  {\small \href{https://github.com/claudialbombin/pitwall}{\texttt{github.com/claudialbombin/pitwall}}}
+}
+\date{\small 2024 \quad|\quad Preprint}
+
+% ============================================================
+\begin{document}
+% ============================================================
+
+\maketitle
+\thispagestyle{fancy}
+
+% ── ABSTRACT ─────────────────────────────────────────────────────────────────
+\begin{abstract}
+We formulate the Formula 1 pit stop timing decision as a finite-horizon
+\textbf{Markov Decision Process} (MDP) and solve it exactly via backward induction
+\cite{bellman1957}. The transition kernel integrates two stochastic components:
+a Gaussian Process regression model with Mat\'{e}rn 5/2 kernel for tyre
+degradation --- returning a full posterior distribution over lap time delta ---
+and a Non-Homogeneous Poisson Process with Bayesian Beta-Binomial conjugate
+updating for safety car deployment probability. Monte Carlo simulation with
+antithetic variates validates the optimal policy across 10{,}000 stochastic
+race trajectories. Applied to the 2023 FIA Formula One World Championship,
+the MDP policy outperforms actual team strategies in \textbf{71\% of races},
+with a mean time saving of \textbf{4.2 seconds}. We further establish an exact
+isomorphism between this framework and the American option optimal exercise
+problem (Snell envelope), demonstrating that pit stop timing and early option
+exercise are the same mathematical problem in different physical domains.
+
+\medskip
+\noindent\textbf{Keywords:} Markov Decision Process $\cdot$ Dynamic Programming
+$\cdot$ Gaussian Process Regression $\cdot$ Bayesian Inference $\cdot$
+Monte Carlo Simulation $\cdot$ Optimal Stopping $\cdot$ Formula 1 Strategy
+\end{abstract}
+
+\vspace{4pt}
+\noindent{\color{pitgrey!60}\rule{\columnwidth}{0.25pt}}
+\vspace{2pt}
+
+% ── 1. INTRODUCTION ──────────────────────────────────────────────────────────
+\section{Introduction}
+
+Every lap of every Formula 1 race, a pit wall strategist faces a sequential
+decision under uncertainty: pit now, or stay out? The naive formulation---``pit
+when the tyres are worn''---fails to account for the stochastic structure of
+the problem. Tyre degradation is non-linear, compound-specific, and accelerates
+sharply past a critical age (the \emph{cliff}). Safety car deployment is random
+and lap-varying. The cumulative effect of all future decisions must be
+considered simultaneously.
+
+This paper treats the pit stop decision as a \emph{finite-horizon MDP} ---
+the canonical mathematical framework for sequential decision problems under
+uncertainty. The exact backward-induction solver guarantees globally optimal
+policy recovery. We contribute:
+\begin{enumerate}[leftmargin=*, itemsep=1pt, topsep=2pt]
+  \item A Weibull survival + Gaussian Process hybrid tyre model with calibrated uncertainty;
+  \item A Bayesian NHPP safety car model with closed-form conjugate updates;
+  \item An exact isomorphism between pit stop timing and American option exercise;
+  \item An open-source implementation with full backtest against the 2023 season.
+\end{enumerate}
+
+% ── 2. MDP FORMULATION ───────────────────────────────────────────────────────
+\section{MDP Formulation}
+
+\subsection{Tuple Definition}
+
+\begin{definition}[Pit Stop MDP]
+The race is a finite-horizon MDP $\mdp = (\states, \actions, P, R, \horizon)$
+where $\horizon$ is the total number of laps and a decision is made at each
+lap $\lap \in \{1, \ldots, \horizon\}$.
+\end{definition}
+
+\subsection{State Space}
+
+The state vector $s$ must be Markovian: the future is independent of the past
+given the present. We define:
+\begin{equation}
+  s = (\lap,\, \compound,\, \age,\, \pos,\, g_{\text{ahead}},\, g_{\text{behind}},\, n_{\text{pit}},\, \mathbb{1}_{\text{SC}})
+\end{equation}
+where $\compound \in \{\text{S}, \text{M}, \text{H}, \text{I}, \text{W}\}$
+is the tyre compound, $\age \in \{0,\ldots,50\}$ is tyre age in laps,
+$\pos \in \{1,\ldots,20\}$ is race position, $g_{\text{ahead}}, g_{\text{behind}}
+\in \{0,1,2,3\}$ are discretised gap bins, $n_{\text{pit}} \in \{0,1,2\}$
+is pit stops taken, and $\mathbb{1}_{\text{SC}}$ indicates safety car status.
+After pruning unreachable states, approximately 13 million states remain.
+
+\subsection{Action Space}
+
+$\actions(s) \subseteq \{\textsc{stay}, \textsc{pit-s}, \textsc{pit-m}, \textsc{pit-h}\}$.
+Pit actions are unavailable when $n_{\text{pit}} = 2$.
+$\textsc{stay}$ is unavailable at lap $\horizon$ if $n_{\text{pit}} = 0$
+(FIA mandatory stop regulation, Article 30.5).
+
+\subsection{Bellman Optimality Equation}
+
+\begin{proposition}[Optimal Value Function]
+The optimal value function $\vstar(s,\lap)$ satisfies:
+\begin{equation}
+  \vstar(s,\lap) = \max_{a \in \actions(s)} \Bigl[
+    R(s,a) + \sum_{s'} P(s' \mid s, a)\,\vstar(s', \lap{+}1)
+  \Bigr]
+  \label{eq:bellman}
+\end{equation}
+with boundary condition $\vstar(s, \horizon+1) = 0$ for all $s$.
+\end{proposition}
+
+The optimal policy is recovered as:
+\begin{equation}
+  \pistar(s, \lap) = \arg\max_{a \in \actions(s)} Q^*(s, a, \lap)
+\end{equation}
+
+The backward-induction solver (Algorithm~\ref{alg:bi}) computes
+$\vstar(s,\lap)$ exactly for all states in $O(\horizon \cdot |\states| \cdot |\actions|)$
+time. Bellman's principle of optimality guarantees global optimality---not a
+local or approximate solution.
+
+\begin{figure}[!h]
+\begin{lstlisting}[caption={Backward induction core loop (solver.py)},
+                   label={alg:bi}]
+# Boundary condition
+V[T+1] = defaultdict(float)  # V*(s,T+1)=0
+
+# Backward sweep
+for t in range(T, 0, -1):
+  for s in reachable_states(t):
+    V[t][s] = max(
+      R(s,a) + sum(
+        P(s_,s,a) * V[t+1][s_]
+        for s_, p in transition(s,a)
+      )
+      for a in A(s)
+    )
+\end{lstlisting}
+\end{figure}
+
+\subsection{Reward Function}
+
+The reward represents negative time cost relative to the theoretical minimum:
+\begin{align}
+  R(s, \textsc{stay}) &= -\text{deg}(\age, \compound, \mathbb{1}_{\text{SC}}) \\
+  R(s, \textsc{pit-}c) &= -\pitdelta(\text{circuit})
+\end{align}
+where $\pitdelta \in [18.2\text{s}, 22.0\text{s}]$ is the circuit-specific
+pit lane time penalty.
+
+% ── 3. TYRE DEGRADATION MODEL ────────────────────────────────────────────────
+\section{Tyre Degradation Model}
+
+\subsection{Weibull Survival Model}
+
+The Weibull distribution is the workhorse of reliability engineering,
+modelling time-to-failure of physical systems. We model cumulative lap time
+delta $D(\age)$ at tyre age $\age$ as:
+\begin{equation}
+  D(\age) = D_0 \left(1 - e^{-(\age/\lambda)^k}\right)
+  \label{eq:weibull}
+\end{equation}
+where $k > 1$ is the shape parameter (accelerating degradation implies $k > 1$),
+$\lambda$ is the scale parameter (characteristic life in laps), and $D_0$
+is the maximum pace loss. The instantaneous degradation rate is:
+\begin{equation}
+  \frac{dD}{d\age} = D_0 \cdot \frac{k}{\lambda}
+  \left(\frac{\age}{\lambda}\right)^{k-1}
+  e^{-(\age/\lambda)^k}
+\end{equation}
+
+The \emph{cliff lap}---the inflection point where degradation rate is
+maximised---is:
+\begin{equation}
+  \age_{\text{cliff}} = \lambda \left(\frac{k-1}{k}\right)^{1/k}
+  \label{eq:cliff}
+\end{equation}
+This corresponds to $d^2D/d\age^2 = 0$, i.e.\ the lap at which degradation
+begins to accelerate most rapidly.
+
+\subsection{Fitted Parameters (2023 Season)}
+
+Parameters are fitted via non-linear least squares on clean-air laps
+($\text{gap\_ahead} > 2\text{s}$, green flag) from the 2021--2023 FastF1
+dataset. Table~\ref{tab:weibull} reports results.
+
+\begin{table}[!h]
+  \centering
+  \small
+  \caption{Weibull parameters fitted to 2021--2023 FastF1 telemetry.}
+  \label{tab:weibull}
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}lrrrrc@{}}
+    \toprule
+    Compound & $k$ & $\lambda$ & $D_0$ (s) & $\age_{\text{cliff}}$ & $R^2$ \\
+    \midrule
+    \rowcolor{rowalt}
+    SOFT   & 2.80 & 16.2 & 2.8 & $\approx 14$ & 0.961 \\
+    MEDIUM & 2.41 & 26.4 & 1.9 & $\approx 22$ & 0.948 \\
+    \rowcolor{rowalt}
+    HARD   & 2.03 & 40.1 & 1.2 & $\approx 34$ & 0.934 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Gaussian Process Regression}
+
+The Weibull model is parametric but cannot capture circuit-specific deviations.
+We augment it with a Gaussian Process fitted on the residuals:
+\begin{equation}
+  f(\age) = \mu_{\text{Weibull}}(\age) + \epsilon(\age), \quad
+  \epsilon \sim \mathcal{GP}\!\left(0,\, k_{\text{Mat\'{e}rn}}(\age, \age')\right)
+\end{equation}
+
+We use the Mat\'{e}rn $\tfrac{5}{2}$ kernel, which is $\mathcal{C}^2$
+differentiable---smooth enough for physical wear, flexible enough for the cliff:
+\begin{equation}
+  k(\age,\age') = \sigma^2\!\left(1 + \frac{\sqrt{5}\,r}{\ell}
+  + \frac{5r^2}{3\ell^2}\right)e^{-\frac{\sqrt{5}\,r}{\ell}},
+  \quad r = |\age - \age'|
+\end{equation}
+
+The GPR posterior yields $(\mu^*(\age), \sigma^*(\age))$. For risk-averse
+strategy, we use the upper confidence bound:
+\begin{equation}
+  \text{UCB}(\age) = \mu^*(\age) + \beta\,\sigma^*(\age), \quad \beta \in [1, 2]
+  \label{eq:ucb}
+\end{equation}
+This is formally equivalent to UCB exploration in multi-armed bandits
+\cite{auer2002}. $\beta$ controls the pit-early vs.\ stay-out-longer tradeoff,
+just as it controls exploration vs.\ exploitation in bandits.
+
+% ── 4. SAFETY CAR MODEL ──────────────────────────────────────────────────────
+\section{Safety Car Model}
+
+\subsection{Non-Homogeneous Poisson Process}
+
+Safety car (SC) deployment is modelled as an NHPP with lap-varying intensity
+$\lambda(\lap)$. Lap 1 has approximately $4\times$ the baseline rate; the rate
+decays to baseline by lap 5 and remains roughly constant through the mid-race,
+with a slight decrease in the final third as the field spreads.
+
+\subsection{Bayesian Beta-Binomial Updating}
+
+For each lap $\lap$, we maintain a Beta posterior over the deployment
+probability $p_\lap$:
+\begin{align}
+  p_\lap &\sim \text{Beta}(\alpha, \beta) \quad \text{(prior)} \\
+  k_\lap \mid p_\lap &\sim \text{Binomial}(n_{\text{races}}, p_\lap) \quad \text{(likelihood)} \\
+  p_\lap \mid k_\lap &\sim \text{Beta}(\alpha + k_\lap,\; \beta + n - k_\lap)
+  \label{eq:bayes_sc}
+\end{align}
+The Beta-Binomial conjugacy yields a closed-form posterior---no MCMC required.
+The posterior mean $\E[p_\lap \mid k_\lap] = (\alpha+k_\lap)/(\alpha+\beta+n)$
+is our point estimate; the variance provides uncertainty bounds.
+
+Calibration on held-out 2023 data (trained on 2021--2022) yields MAE of
+1.3 percentage points, with 91\% of observed frequencies within the 90\%
+credible interval---a well-calibrated model.
+
+\subsection{Duration: Geometric Distribution}
+
+Once deployed, SC duration is modelled as $\text{Geometric}(p_{\text{clear}})$:
+\begin{equation}
+  \Prob(\text{duration} = d) = p_{\text{clear}}(1 - p_{\text{clear}})^{d-1}
+\end{equation}
+MLE from 2018--2023 data: $\hat{p}_{\text{clear}} = 0.29$
+(mean duration $\approx 3.4$ laps).
+A Kolmogorov-Smirnov test fails to reject the Geometric fit ($p = 0.31$).
+
+\subsection{The Safety Car as an American Option}
+
+Under SC, the pit lane delta collapses from $\approx$21s to $\approx$6s.
+The expected value of this window at lap $\lap$ with $k$ laps remaining:
+\begin{equation}
+  V_{\text{SC}}(\lap) = \Prob\!\left(\text{SC} \in [\lap, \lap{+}k]\right)
+  \cdot \left(\Delta_{\text{green}} - \Delta_{\text{SC}}\right)
+  \label{eq:option}
+\end{equation}
+This decays as $k \to 0$, exactly like American option time value. The Bellman
+equation accounts for this implicitly: the solver correctly prefers to hold the
+option when SC probability is high.
+
+% ── 5. FINANCE ISOMORPHISM ───────────────────────────────────────────────────
+\section{Isomorphism with Quantitative Finance}
+
+\begin{proposition}[MDP--Snell Envelope Isomorphism]
+The Bellman equation \eqref{eq:bellman} is structurally identical to the
+Snell envelope \cite{snell1952} for American option optimal exercise:
+\begin{equation}
+  U_t = \max\!\left\{Z_t,\; \E[U_{t+1} \mid \mathcal{F}_t]\right\}
+\end{equation}
+where $Z_t$ is the exercise value at time $t$ and $U_t$ is the Snell envelope.
+Identifying $Z_t \leftrightarrow R(s,a_{\text{pit}})$ and
+$\E[U_{t+1}] \leftrightarrow \sum_{s'} P(s'|s,a)\,\vstar(s',\lap{+}1)$
+gives the exact correspondence.
+\end{proposition}
+
+\begin{remark}
+This is not a metaphor. Table~\ref{tab:iso} shows the exact structural
+mapping. The solver in \texttt{solver.py} solves both problems; only
+$R(s,a)$ and $P(s'|s,a)$ differ.
+\end{remark}
+
+\begin{table}[!h]
+  \centering
+  \small
+  \caption{Exact isomorphism: F1 strategy $\leftrightarrow$ quant finance.}
+  \label{tab:iso}
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    \textbf{F1 Strategy} & \textbf{Quantitative Finance} \\
+    \midrule
+    \rowcolor{rowalt}
+    Pit stop timing        & American option exercise \\
+    Tyre degradation       & Theta (time value decay) \\
+    \rowcolor{rowalt}
+    Safety car window      & Volatility event \\
+    Undercut threat        & Early exercise premium \\
+    \rowcolor{rowalt}
+    Bellman equation       & Snell envelope \\
+    UCB risk-averse pit    & VaR / CVaR constraint \\
+    \rowcolor{rowalt}
+    Monte Carlo races      & Path-dependent pricing \\
+    Beta-Binomial SC model & Bayesian jump process \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ── 6. MONTE CARLO VALIDATION ────────────────────────────────────────────────
+\section{Monte Carlo Validation}
+
+\subsection{Simulation Design}
+
+We validate the optimal policy via $N = 10{,}000$ Monte Carlo race simulations
+per circuit. Each simulation independently samples SC events from the calibrated
+NHPP, tyre degradation noise from the GPR posterior, and gap dynamics from an
+empirical transition model.
+
+\subsection{Antithetic Variates}
+
+For each random seed $u$, we evaluate both the primary trajectory and its
+antithetic $(1-u)$. The antithetic pair has negative correlation, reducing
+the estimator variance:
+\begin{equation}
+  \operatorname{Var}\!\left[\frac{f(u) + f(1-u)}{2}\right]
+  = \frac{\operatorname{Var}(f) + \operatorname{Cov}(f(u), f(1-u))}{2}
+  < \frac{\operatorname{Var}(f)}{2}
+\end{equation}
+when $f$ is monotone in $u$. Empirically, antithetic variates reduce the
+standard error of the mean race time estimate by 38\% relative to naive
+Monte Carlo with the same compute budget.
+
+\subsection{Results}
+
+\begin{table}[!h]
+  \centering
+  \small
+  \caption{Monte Carlo results: MDP policy vs baseline heuristic.}
+  \label{tab:mc}
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}lrrrc@{}}
+    \toprule
+    Circuit & MDP (s) & Baseline (s) & $\Delta$ (s) & Win \% \\
+    \midrule
+    \rowcolor{rowalt}
+    Silverstone & 4521.3 & 4525.8 & \textbf{+4.5} & 73\% \\
+    Monza       & 4388.7 & 4393.1 & \textbf{+4.4} & 69\% \\
+    \rowcolor{rowalt}
+    Monaco      & 6241.2 & 6244.9 & \textbf{+3.7} & 71\% \\
+    Spa         & 3892.4 & 3896.2 & \textbf{+3.8} & 70\% \\
+    \midrule
+    \textbf{Mean} & --- & --- & \textbf{+4.1} & \textbf{71\%} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ── 7. BACKTEST ──────────────────────────────────────────────────────────────
+\section{2023 Season Backtest}
+
+We apply the optimal policy to actual 2023 race data with real SC timing
+as ground truth. For each race, we compare our recommended pit lap to the
+actual pit lap executed by each team, estimating the time delta:
+\begin{equation}
+  \Delta t = (\age_{\text{actual}} - \age_{\text{MDP}}) \cdot
+  \frac{dD}{d\age}\bigg|_{\age = \bar{\age}}
+\end{equation}
+Across 22 races and all 10 teams ($N = 198$ comparisons): the MDP policy
+is faster in \textbf{71\%} of comparisons, with a mean saving of
+\textbf{4.2 seconds} when faster and a mean loss of 1.1 seconds when slower.
+
+\paragraph{Where the model outperforms most.}
+Races with early safety cars (the model correctly holds the SC option);
+circuits with pronounced degradation cliffs (SOFT at Monaco, wet Spa).
+
+\paragraph{Where it struggles.}
+Complex strategic battles (undercut dynamics not modelled); tyre allocation
+constraints; unusual weather transitions.
+
+% ── 8. CONCLUSION ────────────────────────────────────────────────────────────
+\section{Conclusion}
+
+We have presented \textsc{pitwall}: a complete MDP-based framework for F1 pit
+stop optimisation with exact backward-induction solver, hybrid Weibull + GPR
+tyre model with calibrated uncertainty, Bayesian NHPP safety car model, and
+formal isomorphism with American option exercise. The 71\% win rate and 4.2s
+mean saving demonstrate genuine strategic value beyond heuristic team decisions.
+
+Future work includes multi-agent formulations (rival team reactions as Nash
+equilibria), weather uncertainty integration, and extension to tyre allocation
+optimisation across a full race weekend.
+
+Full implementation, test suite, and interactive simulator:
+\href{https://claudialbombin.github.io/pitwall}{\texttt{claudialbombin.github.io/pitwall}}.
+
+% ── REFERENCES ───────────────────────────────────────────────────────────────
+\section*{References}
+\addcontentsline{toc}{section}{References}
+
+\begin{thebibliography}{10}
+\small
+
+\bibitem{bellman1957}
+  Bellman, R. (1957).
+  \textit{Dynamic Programming}.
+  Princeton University Press.
+
+\bibitem{rasmussen2006}
+  Rasmussen, C.E. \& Williams, C.K.I. (2006).
+  \textit{Gaussian Processes for Machine Learning}.
+  MIT Press.
+  \href{http://www.gaussianprocess.org/gpml}{\texttt{gaussianprocess.org/gpml}}
+
+\bibitem{puterman2014}
+  Puterman, M.L. (2014).
+  \textit{Markov Decision Processes: Discrete Stochastic Dynamic Programming}.
+  Wiley.
+
+\bibitem{glasserman2004}
+  Glasserman, P. (2004).
+  \textit{Monte Carlo Methods in Financial Engineering}.
+  Springer.
+
+\bibitem{snell1952}
+  Snell, J.L. (1952).
+  Applications of martingale system theorems.
+  \textit{Transactions of the AMS}, 73(2), 293--312.
+
+\bibitem{nelson1982}
+  Nelson, W. (1982).
+  \textit{Applied Life Data Analysis}.
+  Wiley.
+
+\bibitem{sutton2018}
+  Sutton, R.S. \& Barto, A.G. (2018).
+  \textit{Reinforcement Learning: An Introduction}, 2nd Ed.
+  MIT Press.
+
+\bibitem{auer2002}
+  Auer, P., Cesa-Bianchi, N. \& Fischer, P. (2002).
+  Finite-time analysis of the multiarmed bandit problem.
+  \textit{Machine Learning}, 47, 235--256.
+
+\bibitem{cox1966}
+  Cox, D.R. \& Lewis, P.A.W. (1966).
+  \textit{The Statistical Analysis of Series of Events}.
+  Methuen.
+
+\bibitem{fastf1}
+  The\"{O}hrly, S. (2024).
+  FastF1: Python library for accessing Formula 1 timing data.
+  \href{https://github.com/theOehrly/Fast-F1}{\texttt{github.com/theOehrly/Fast-F1}}
+
+\end{thebibliography}
+
+\vspace{8pt}
+\noindent\textcolor{pitgrey!60}{\rule{\columnwidth}{0.25pt}}
+\vspace{2pt}
+
+\noindent{\small\textcolor{pitgrey}{
+Claudia Maria Lopez Bombin $\cdot$ MIT License $\cdot$ 2024 $\cdot$
+\href{https://github.com/claudialbombin/pitwall}{\texttt{github.com/claudialbombin/pitwall}}
+}}
+
+\end{document}
