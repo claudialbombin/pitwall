@@ -113,13 +113,14 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import numpy as np
-from scipy.optimize import curve_fit, minimize_scalar
+from scipy.optimize import curve_fit
 from scipy.special import gamma as gamma_fn
 
 # Optional GPR backend — graceful fallback to Weibull-only if not installed
 try:
     from sklearn.gaussian_process import GaussianProcessRegressor
     from sklearn.gaussian_process.kernels import Matern, WhiteKernel, ConstantKernel
+
     _GPR_AVAILABLE = True
 except ImportError:
     _GPR_AVAILABLE = False
@@ -143,21 +144,21 @@ except ImportError:
 # These are the MEDIAN cliff laps; actual values are circuit- and
 # temperature-dependent (see fit() for per-circuit calibration).
 CLIFF_LAP_MEDIAN: dict[Compound, int] = {
-    Compound.SOFT:   18,
+    Compound.SOFT: 18,
     Compound.MEDIUM: 28,
-    Compound.HARD:   42,
-    Compound.INTER:  25,
-    Compound.WET:    38,
+    Compound.HARD: 42,
+    Compound.INTER: 25,
+    Compound.WET: 38,
 }
 
 # Maximum pace loss at full degradation (seconds/lap above new-tyre pace)
 # Fitted to 2023 season average across all circuits.
 MAX_DEGRADATION: dict[Compound, float] = {
-    Compound.SOFT:   2.8,
+    Compound.SOFT: 2.8,
     Compound.MEDIUM: 1.9,
-    Compound.HARD:   1.2,
-    Compound.INTER:  1.6,
-    Compound.WET:    0.9,
+    Compound.HARD: 1.2,
+    Compound.INTER: 1.6,
+    Compound.WET: 0.9,
 }
 
 
@@ -165,8 +166,8 @@ MAX_DEGRADATION: dict[Compound, float] = {
 # Weibull degradation model
 # ---------------------------------------------------------------------------
 
-def _weibull_degradation(t: np.ndarray, k: float, lam: float,
-                          d0: float) -> np.ndarray:
+
+def _weibull_degradation(t: np.ndarray, k: float, lam: float, d0: float) -> np.ndarray:
     """
     Weibull cumulative degradation function.
 
@@ -179,18 +180,17 @@ def _weibull_degradation(t: np.ndarray, k: float, lam: float,
     lam : Weibull scale parameter (characteristic life, laps)
     d0  : maximum degradation (seconds above new-tyre pace)
     """
-    return d0 * (1.0 - np.exp(-(t / lam) ** k))
+    return d0 * (1.0 - np.exp(-((t / lam) ** k)))
 
 
-def _weibull_rate(t: np.ndarray, k: float, lam: float,
-                   d0: float) -> np.ndarray:
+def _weibull_rate(t: np.ndarray, k: float, lam: float, d0: float) -> np.ndarray:
     """
     Instantaneous degradation rate dD/dt — the Weibull hazard scaled by D₀.
 
     This is the lap-time DELTA per additional lap of tyre age.
     High values signal imminent cliff.
     """
-    return d0 * (k / lam) * (t / lam) ** (k - 1) * np.exp(-(t / lam) ** k)
+    return d0 * (k / lam) * (t / lam) ** (k - 1) * np.exp(-((t / lam) ** k))
 
 
 @dataclass
@@ -201,17 +201,20 @@ class WeibullTyreModel:
     Parameters k, lambda, d0 are either provided (pre-fitted) or estimated
     from telemetry data via fit().
     """
+
     compound: Compound
-    k:   float = field(default=2.5)    # shape: >1 for accelerating wear
-    lam: float = field(default=25.0)   # scale: characteristic life (laps)
-    d0:  float = field(default=0.0)    # max degradation (s/lap)
+    k: float = field(default=2.5)  # shape: >1 for accelerating wear
+    lam: float = field(default=25.0)  # scale: characteristic life (laps)
+    d0: float = field(default=0.0)  # max degradation (s/lap)
     _fitted: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self) -> None:
         if self.d0 == 0.0:
             self.d0 = MAX_DEGRADATION[self.compound]
 
-    def fit(self, tyre_ages: np.ndarray, lap_time_deltas: np.ndarray) -> "WeibullTyreModel":
+    def fit(
+        self, tyre_ages: np.ndarray, lap_time_deltas: np.ndarray
+    ) -> "WeibullTyreModel":
         """
         Fit Weibull parameters to observed (tyre_age, lap_time_delta) data.
 
@@ -225,19 +228,28 @@ class WeibullTyreModel:
                            Must be non-negative and monotonically increasing on average.
         """
         p0 = [2.5, CLIFF_LAP_MEDIAN[self.compound], MAX_DEGRADATION[self.compound]]
-        bounds = ([1.0, 5.0,  0.1],   # lower bounds: k, λ, D₀
-                  [8.0, 60.0, 5.0])   # upper bounds
+        bounds = (
+            [1.0, 5.0, 0.1],  # lower bounds: k, λ, D₀
+            [8.0, 60.0, 5.0],
+        )  # upper bounds
 
         try:
             popt, _ = curve_fit(
-                _weibull_degradation, tyre_ages, lap_time_deltas,
-                p0=p0, bounds=bounds, maxfev=10_000
+                _weibull_degradation,
+                tyre_ages,
+                lap_time_deltas,
+                p0=p0,
+                bounds=bounds,
+                maxfev=10_000,
             )
             self.k, self.lam, self.d0 = popt
             self._fitted = True
         except RuntimeError as e:
-            warnings.warn(f"Weibull fit failed for {self.compound.name}: {e}. "
-                          "Using default parameters.", RuntimeWarning)
+            warnings.warn(
+                f"Weibull fit failed for {self.compound.name}: {e}. "
+                "Using default parameters.",
+                RuntimeWarning,
+            )
 
         return self
 
@@ -280,6 +292,7 @@ class WeibullTyreModel:
 # Gaussian Process degradation model
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class GPRTyreModel:
     """
@@ -291,23 +304,22 @@ class GPRTyreModel:
 
     Requires scikit-learn >= 1.0. Falls back to WeibullTyreModel if unavailable.
     """
-    compound:      Compound
-    length_scale:  float = 10.0   # Matérn kernel length scale (laps)
-    noise_level:   float = 0.05   # Observation noise (seconds)
-    _gpr:          Optional[object] = field(default=None, init=False, repr=False)
-    _weibull:      WeibullTyreModel = field(init=False, repr=False)
-    _fitted:       bool = field(default=False, init=False, repr=False)
-    _X_train:      Optional[np.ndarray] = field(default=None, init=False, repr=False)
+
+    compound: Compound
+    length_scale: float = 10.0  # Matérn kernel length scale (laps)
+    noise_level: float = 0.05  # Observation noise (seconds)
+    _gpr: Optional[object] = field(default=None, init=False, repr=False)
+    _weibull: WeibullTyreModel = field(init=False, repr=False)
+    _fitted: bool = field(default=False, init=False, repr=False)
+    _X_train: Optional[np.ndarray] = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         self._weibull = WeibullTyreModel(self.compound)
         if _GPR_AVAILABLE:
-            kernel = (
-                ConstantKernel(1.0, constant_value_bounds=(0.1, 5.0)) *
-                Matern(length_scale=self.length_scale,
-                       length_scale_bounds=(3.0, 40.0), nu=2.5) +
-                WhiteKernel(noise_level=self.noise_level,
-                            noise_level_bounds=(1e-3, 0.5))
+            kernel = ConstantKernel(1.0, constant_value_bounds=(0.1, 5.0)) * Matern(
+                length_scale=self.length_scale, length_scale_bounds=(3.0, 40.0), nu=2.5
+            ) + WhiteKernel(
+                noise_level=self.noise_level, noise_level_bounds=(1e-3, 0.5)
             )
             self._gpr = GaussianProcessRegressor(
                 kernel=kernel,
@@ -316,8 +328,7 @@ class GPRTyreModel:
                 random_state=42,
             )
 
-    def fit(self, tyre_ages: np.ndarray,
-            lap_time_deltas: np.ndarray) -> "GPRTyreModel":
+    def fit(self, tyre_ages: np.ndarray, lap_time_deltas: np.ndarray) -> "GPRTyreModel":
         """
         Fit GPR to (tyre_age, delta) observations.
 
@@ -337,17 +348,18 @@ class GPRTyreModel:
 
         # Fit GPR on residuals from Weibull mean
         weibull_mean = self._weibull.predict(tyre_ages)
-        residuals    = lap_time_deltas - weibull_mean
+        residuals = lap_time_deltas - weibull_mean
 
         X = tyre_ages.reshape(-1, 1)
         self._gpr.fit(X, residuals)
         self._X_train = X
-        self._fitted   = True
+        self._fitted = True
 
         return self
 
-    def predict(self, tyre_age: float | np.ndarray,
-                return_std: bool = False) -> tuple[np.ndarray, np.ndarray] | np.ndarray:
+    def predict(
+        self, tyre_age: float | np.ndarray, return_std: bool = False
+    ) -> tuple[np.ndarray, np.ndarray] | np.ndarray:
         """
         Predict lap time delta and (optionally) posterior standard deviation.
 
@@ -382,8 +394,9 @@ class GPRTyreModel:
             return mean, residual_std
         return mean
 
-    def upper_confidence_bound(self, tyre_age: float | np.ndarray,
-                                beta: float = 1.5) -> np.ndarray:
+    def upper_confidence_bound(
+        self, tyre_age: float | np.ndarray, beta: float = 1.5
+    ) -> np.ndarray:
         """
         UCB(t) = μ*(t) + β · σ*(t)
 
@@ -409,7 +422,7 @@ class GPRTyreModel:
                                 (practical threshold used by F1 engineers)
         """
         t_grid = np.linspace(1, 55, 500)
-        mean   = self.predict(t_grid)
+        mean = self.predict(t_grid)
 
         if method == "inflection":
             # Numerical second derivative
@@ -435,6 +448,7 @@ class GPRTyreModel:
 # Unified TyreModel interface (used by mdp.py and solver.py)
 # ---------------------------------------------------------------------------
 
+
 class TyreModel:
     """
     Unified tyre degradation model combining Weibull and GPR.
@@ -455,14 +469,16 @@ class TyreModel:
             c: GPRTyreModel(c) for c in Compound
         }
 
-    def fit(self, compound: Compound, tyre_ages: np.ndarray,
-            lap_time_deltas: np.ndarray) -> "TyreModel":
+    def fit(
+        self, compound: Compound, tyre_ages: np.ndarray, lap_time_deltas: np.ndarray
+    ) -> "TyreModel":
         """Fit model for a specific compound from raw telemetry arrays."""
         self._models[compound].fit(tyre_ages, lap_time_deltas)
         return self
 
-    def fit_from_fastf1(self, year: int, circuit: str,
-                        session: str = "R") -> "TyreModel":
+    def fit_from_fastf1(
+        self, year: int, circuit: str, session: str = "R"
+    ) -> "TyreModel":
         """
         Fetch telemetry via FastF1 and fit all compound models.
 
@@ -486,9 +502,9 @@ class TyreModel:
         laps = session_obj.laps
         # Filter clean air laps
         clean = laps[
-            (laps["TrackStatus"] == "1") &          # green flag
-            (laps["LapTime"].notna()) &
-            (laps["TyreLife"] > 0)
+            (laps["TrackStatus"] == "1")  # green flag
+            & (laps["LapTime"].notna())
+            & (laps["TyreLife"] > 0)
         ].copy()
 
         clean["LapTimeSec"] = clean["LapTime"].dt.total_seconds()
@@ -498,8 +514,11 @@ class TyreModel:
             subset = clean[clean["Compound"].str.upper() == compound.name]
 
             if len(subset) < 10:
-                warnings.warn(f"Fewer than 10 clean laps for {compound_name} "
-                              f"at {circuit} {year}. Skipping fit.", RuntimeWarning)
+                warnings.warn(
+                    f"Fewer than 10 clean laps for {compound_name} "
+                    f"at {circuit} {year}. Skipping fit.",
+                    RuntimeWarning,
+                )
                 continue
 
             # New-tyre pace baseline: median of first 3 laps on compound
@@ -508,16 +527,20 @@ class TyreModel:
                 continue
 
             tyre_ages = subset["TyreLife"].values.astype(float)
-            deltas    = (subset["LapTimeSec"].values - baseline).clip(min=0.0)
+            deltas = (subset["LapTimeSec"].values - baseline).clip(min=0.0)
 
             self.fit(compound, tyre_ages, deltas)
 
         return self
 
-    def predict(self, compound: Compound, tyre_age: float | np.ndarray,
-                return_std: bool = False,
-                risk_averse: bool = False,
-                beta: float = 1.5) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+    def predict(
+        self,
+        compound: Compound,
+        tyre_age: float | np.ndarray,
+        return_std: bool = False,
+        risk_averse: bool = False,
+        beta: float = 1.5,
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
         """
         Predict lap time delta for given compound and tyre age.
 
@@ -549,11 +572,11 @@ class TyreModel:
         for compound, model in self._models.items():
             w = model.weibull
             out[compound.name] = {
-                "weibull_k":       round(w.k, 3),
-                "weibull_lambda":  round(w.lam, 3),
+                "weibull_k": round(w.k, 3),
+                "weibull_lambda": round(w.lam, 3),
                 "max_degradation": round(w.d0, 3),
-                "mean_life_laps":  round(w.weibull_mean_life, 1),
-                "cliff_lap":       round(model.cliff_lap(), 1),
-                "gpr_available":   _GPR_AVAILABLE and model._fitted,
+                "mean_life_laps": round(w.weibull_mean_life, 1),
+                "cliff_lap": round(model.cliff_lap(), 1),
+                "gpr_available": _GPR_AVAILABLE and model._fitted,
             }
         return out

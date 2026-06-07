@@ -21,7 +21,6 @@ Author: Claudia Maria Lopez Bombin
 GitHub: https://github.com/claudialbombin/pitwall
 """
 
-import math
 import sys
 from pathlib import Path
 
@@ -31,11 +30,17 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent / "core"))
 
 from mdp import (
-    Action, Compound, State,
-    available_actions, action_to_compound,
-    reward, lap_time_penalty, discretise_gap,
+    Action,
+    Compound,
+    State,
+    available_actions,
+    action_to_compound,
+    reward,
+    lap_time_penalty,
+    discretise_gap,
     enumerate_states,
-    GAP_BINS, N_GAP_BINS, PIT_LANE_DELTA,
+    N_GAP_BINS,
+    PIT_LANE_DELTA,
 )
 
 
@@ -43,31 +48,47 @@ from mdp import (
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def standard_state():
     """A typical mid-race state — used across many tests."""
     return State(
-        lap=20, compound=Compound.MEDIUM, tyre_age=10,
-        position=5, gap_ahead=1, gap_behind=1,
-        pit_used=0, sc_active=False,
+        lap=20,
+        compound=Compound.MEDIUM,
+        tyre_age=10,
+        position=5,
+        gap_ahead=1,
+        gap_behind=1,
+        pit_used=0,
+        sc_active=False,
     )
 
 
 @pytest.fixture
 def fresh_tyre_state():
     return State(
-        lap=1, compound=Compound.SOFT, tyre_age=0,
-        position=1, gap_ahead=3, gap_behind=3,
-        pit_used=0, sc_active=False,
+        lap=1,
+        compound=Compound.SOFT,
+        tyre_age=0,
+        position=1,
+        gap_ahead=3,
+        gap_behind=3,
+        pit_used=0,
+        sc_active=False,
     )
 
 
 @pytest.fixture
 def end_of_race_state():
     return State(
-        lap=51, compound=Compound.HARD, tyre_age=30,
-        position=3, gap_ahead=0, gap_behind=0,
-        pit_used=1, sc_active=False,
+        lap=51,
+        compound=Compound.HARD,
+        tyre_age=30,
+        position=3,
+        gap_ahead=0,
+        gap_behind=0,
+        pit_used=1,
+        sc_active=False,
     )
 
 
@@ -75,8 +96,8 @@ def end_of_race_state():
 # State construction and validation
 # ---------------------------------------------------------------------------
 
-class TestStateConstruction:
 
+class TestStateConstruction:
     def test_valid_state_constructs(self, standard_state):
         """Standard state should construct without raising."""
         assert standard_state.lap == 20
@@ -90,41 +111,93 @@ class TestStateConstruction:
 
     def test_state_equality(self):
         """Two states with identical fields must be equal (frozen dataclass)."""
-        s1 = State(lap=5, compound=Compound.SOFT, tyre_age=3,
-                   position=10, gap_ahead=2, gap_behind=1, pit_used=0, sc_active=False)
-        s2 = State(lap=5, compound=Compound.SOFT, tyre_age=3,
-                   position=10, gap_ahead=2, gap_behind=1, pit_used=0, sc_active=False)
+        s1 = State(
+            lap=5,
+            compound=Compound.SOFT,
+            tyre_age=3,
+            position=10,
+            gap_ahead=2,
+            gap_behind=1,
+            pit_used=0,
+            sc_active=False,
+        )
+        s2 = State(
+            lap=5,
+            compound=Compound.SOFT,
+            tyre_age=3,
+            position=10,
+            gap_ahead=2,
+            gap_behind=1,
+            pit_used=0,
+            sc_active=False,
+        )
         assert s1 == s2
 
     def test_state_inequality_on_single_field(self, standard_state):
         """Changing any single field must produce an inequal state."""
         import dataclasses
+
         for field_name, new_val in [
-            ("lap", 21), ("tyre_age", 11), ("position", 6),
-            ("sc_active", True), ("pit_used", 1),
+            ("lap", 21),
+            ("tyre_age", 11),
+            ("position", 6),
+            ("sc_active", True),
+            ("pit_used", 1),
         ]:
             other = dataclasses.replace(standard_state, **{field_name: new_val})
             assert other != standard_state
 
     def test_invalid_lap_raises(self):
         with pytest.raises(AssertionError):
-            State(lap=0, compound=Compound.MEDIUM, tyre_age=0,
-                  position=1, gap_ahead=0, gap_behind=0, pit_used=0, sc_active=False)
+            State(
+                lap=0,
+                compound=Compound.MEDIUM,
+                tyre_age=0,
+                position=1,
+                gap_ahead=0,
+                gap_behind=0,
+                pit_used=0,
+                sc_active=False,
+            )
 
     def test_invalid_position_raises(self):
         with pytest.raises(AssertionError):
-            State(lap=1, compound=Compound.MEDIUM, tyre_age=0,
-                  position=21, gap_ahead=0, gap_behind=0, pit_used=0, sc_active=False)
+            State(
+                lap=1,
+                compound=Compound.MEDIUM,
+                tyre_age=0,
+                position=21,
+                gap_ahead=0,
+                gap_behind=0,
+                pit_used=0,
+                sc_active=False,
+            )
 
     def test_invalid_tyre_age_raises(self):
         with pytest.raises(AssertionError):
-            State(lap=1, compound=Compound.MEDIUM, tyre_age=61,
-                  position=1, gap_ahead=0, gap_behind=0, pit_used=0, sc_active=False)
+            State(
+                lap=1,
+                compound=Compound.MEDIUM,
+                tyre_age=61,
+                position=1,
+                gap_ahead=0,
+                gap_behind=0,
+                pit_used=0,
+                sc_active=False,
+            )
 
     def test_invalid_pit_used_raises(self):
         with pytest.raises(AssertionError):
-            State(lap=1, compound=Compound.MEDIUM, tyre_age=0,
-                  position=1, gap_ahead=0, gap_behind=0, pit_used=3, sc_active=False)
+            State(
+                lap=1,
+                compound=Compound.MEDIUM,
+                tyre_age=0,
+                position=1,
+                gap_ahead=0,
+                gap_behind=0,
+                pit_used=3,
+                sc_active=False,
+            )
 
     def test_with_pit_resets_tyre_age(self, standard_state):
         """After a pit stop, tyre age must reset to 0."""
@@ -173,19 +246,22 @@ class TestStateConstruction:
 # Gap discretisation
 # ---------------------------------------------------------------------------
 
-class TestGapDiscretisation:
 
-    @pytest.mark.parametrize("gap, expected_bin", [
-        (0.0,  0),   # exact left edge of bin 0
-        (0.5,  0),   # inside bin 0
-        (0.99, 0),   # just below bin 1
-        (1.0,  1),   # exact left edge of bin 1
-        (2.0,  1),   # inside bin 1
-        (3.0,  2),   # bin 2
-        (4.9,  2),   # just below bin 3
-        (5.0,  3),   # bin 3
-        (100., 3),   # far out — should be last bin
-    ])
+class TestGapDiscretisation:
+    @pytest.mark.parametrize(
+        "gap, expected_bin",
+        [
+            (0.0, 0),  # exact left edge of bin 0
+            (0.5, 0),  # inside bin 0
+            (0.99, 0),  # just below bin 1
+            (1.0, 1),  # exact left edge of bin 1
+            (2.0, 1),  # inside bin 1
+            (3.0, 2),  # bin 2
+            (4.9, 2),  # just below bin 3
+            (5.0, 3),  # bin 3
+            (100.0, 3),  # far out — should be last bin
+        ],
+    )
     def test_gap_bins(self, gap, expected_bin):
         assert discretise_gap(gap) == expected_bin
 
@@ -208,41 +284,62 @@ class TestGapDiscretisation:
 # Available actions
 # ---------------------------------------------------------------------------
 
-class TestAvailableActions:
 
+class TestAvailableActions:
     def test_stay_out_available_in_normal_state(self, standard_state):
         actions = available_actions(standard_state, total_laps=52)
         assert Action.STAY_OUT in actions
 
     def test_pit_actions_available_when_pit_used_zero(self, standard_state):
         actions = available_actions(standard_state, total_laps=52)
-        assert Action.PIT_SOFT   in actions
+        assert Action.PIT_SOFT in actions
         assert Action.PIT_MEDIUM in actions
-        assert Action.PIT_HARD   in actions
+        assert Action.PIT_HARD in actions
 
     def test_no_pit_when_both_stops_used(self):
         """After 2 pit stops, no further pit actions should be available."""
-        s = State(lap=30, compound=Compound.HARD, tyre_age=10,
-                  position=5, gap_ahead=1, gap_behind=1,
-                  pit_used=2, sc_active=False)
+        s = State(
+            lap=30,
+            compound=Compound.HARD,
+            tyre_age=10,
+            position=5,
+            gap_ahead=1,
+            gap_behind=1,
+            pit_used=2,
+            sc_active=False,
+        )
         actions = available_actions(s, total_laps=52)
-        assert Action.PIT_SOFT   not in actions
+        assert Action.PIT_SOFT not in actions
         assert Action.PIT_MEDIUM not in actions
-        assert Action.PIT_HARD   not in actions
+        assert Action.PIT_HARD not in actions
 
     def test_must_pit_on_final_lap_if_no_stop_used(self):
         """On the last lap with no stop taken, STAY_OUT is invalid (mandatory stop rule)."""
-        s = State(lap=52, compound=Compound.MEDIUM, tyre_age=20,
-                  position=5, gap_ahead=1, gap_behind=1,
-                  pit_used=0, sc_active=False)
+        s = State(
+            lap=52,
+            compound=Compound.MEDIUM,
+            tyre_age=20,
+            position=5,
+            gap_ahead=1,
+            gap_behind=1,
+            pit_used=0,
+            sc_active=False,
+        )
         actions = available_actions(s, total_laps=52)
         assert Action.STAY_OUT not in actions
 
     def test_stay_out_on_final_lap_when_stop_already_done(self):
         """On the last lap with 1 stop taken, STAY_OUT is valid."""
-        s = State(lap=52, compound=Compound.HARD, tyre_age=15,
-                  position=5, gap_ahead=1, gap_behind=1,
-                  pit_used=1, sc_active=False)
+        s = State(
+            lap=52,
+            compound=Compound.HARD,
+            tyre_age=15,
+            position=5,
+            gap_ahead=1,
+            gap_behind=1,
+            pit_used=1,
+            sc_active=False,
+        )
         actions = available_actions(s, total_laps=52)
         assert Action.STAY_OUT in actions
 
@@ -250,30 +347,43 @@ class TestAvailableActions:
         """The action set must never be empty — the solver must always have a choice."""
         for lap in [1, 10, 25, 51, 52]:
             for pit_used in [0, 1, 2]:
-                s = State(lap=lap, compound=Compound.MEDIUM, tyre_age=10,
-                          position=5, gap_ahead=1, gap_behind=1,
-                          pit_used=pit_used, sc_active=False)
+                s = State(
+                    lap=lap,
+                    compound=Compound.MEDIUM,
+                    tyre_age=10,
+                    position=5,
+                    gap_ahead=1,
+                    gap_behind=1,
+                    pit_used=pit_used,
+                    sc_active=False,
+                )
                 actions = available_actions(s, total_laps=52)
-                assert len(actions) > 0, f"Empty action set at lap={lap}, pit_used={pit_used}"
+                assert len(actions) > 0, (
+                    f"Empty action set at lap={lap}, pit_used={pit_used}"
+                )
 
     def test_action_to_compound_mapping(self):
         """Each pit action must map to the correct compound."""
-        assert action_to_compound(Action.PIT_SOFT)   == Compound.SOFT
+        assert action_to_compound(Action.PIT_SOFT) == Compound.SOFT
         assert action_to_compound(Action.PIT_MEDIUM) == Compound.MEDIUM
-        assert action_to_compound(Action.PIT_HARD)   == Compound.HARD
-        assert action_to_compound(Action.STAY_OUT)   is None
+        assert action_to_compound(Action.PIT_HARD) == Compound.HARD
+        assert action_to_compound(Action.STAY_OUT) is None
 
 
 # ---------------------------------------------------------------------------
 # Reward function
 # ---------------------------------------------------------------------------
 
-class TestRewardFunction:
 
+class TestRewardFunction:
     def test_reward_is_non_positive(self, standard_state):
         """Rewards must be ≤ 0: time is always lost, never gained."""
-        for action in [Action.STAY_OUT, Action.PIT_SOFT,
-                       Action.PIT_MEDIUM, Action.PIT_HARD]:
+        for action in [
+            Action.STAY_OUT,
+            Action.PIT_SOFT,
+            Action.PIT_MEDIUM,
+            Action.PIT_HARD,
+        ]:
             r = reward(standard_state, action)
             assert r <= 0.0, f"Positive reward {r} for action {action}"
 
@@ -283,7 +393,7 @@ class TestRewardFunction:
         we'd pay the pit lane delta for zero benefit.
         """
         r_stay = reward(fresh_tyre_state, Action.STAY_OUT)
-        r_pit  = reward(fresh_tyre_state, Action.PIT_MEDIUM)
+        r_pit = reward(fresh_tyre_state, Action.PIT_MEDIUM)
         assert r_stay > r_pit, (
             f"Pitting on fresh tyres should cost more than staying out. "
             f"r_stay={r_stay:.3f}, r_pit={r_pit:.3f}"
@@ -304,15 +414,22 @@ class TestRewardFunction:
         """
         rewards = []
         for age in range(0, 25):
-            s = State(lap=20, compound=Compound.SOFT, tyre_age=age,
-                      position=5, gap_ahead=1, gap_behind=1,
-                      pit_used=0, sc_active=False)
+            s = State(
+                lap=20,
+                compound=Compound.SOFT,
+                tyre_age=age,
+                position=5,
+                gap_ahead=1,
+                gap_behind=1,
+                pit_used=0,
+                sc_active=False,
+            )
             rewards.append(reward(s, Action.STAY_OUT))
         # Rewards should be monotonically non-increasing
         for i in range(len(rewards) - 1):
             assert rewards[i] >= rewards[i + 1], (
-                f"Reward increased from age {i} to {i+1}: "
-                f"{rewards[i]:.4f} → {rewards[i+1]:.4f}"
+                f"Reward increased from age {i} to {i + 1}: "
+                f"{rewards[i]:.4f} → {rewards[i + 1]:.4f}"
             )
 
     def test_sc_reduces_lap_time_penalty(self):
@@ -320,14 +437,28 @@ class TestRewardFunction:
         Under safety car, lap times are controlled (slower).
         The degradation penalty should be reduced (less tyre stress).
         """
-        s_green = State(lap=20, compound=Compound.SOFT, tyre_age=15,
-                        position=5, gap_ahead=1, gap_behind=1,
-                        pit_used=0, sc_active=False)
-        s_sc    = State(lap=20, compound=Compound.SOFT, tyre_age=15,
-                        position=5, gap_ahead=1, gap_behind=1,
-                        pit_used=0, sc_active=True)
+        s_green = State(
+            lap=20,
+            compound=Compound.SOFT,
+            tyre_age=15,
+            position=5,
+            gap_ahead=1,
+            gap_behind=1,
+            pit_used=0,
+            sc_active=False,
+        )
+        s_sc = State(
+            lap=20,
+            compound=Compound.SOFT,
+            tyre_age=15,
+            position=5,
+            gap_ahead=1,
+            gap_behind=1,
+            pit_used=0,
+            sc_active=True,
+        )
         r_green = reward(s_green, Action.STAY_OUT)
-        r_sc    = reward(s_sc,    Action.STAY_OUT)
+        r_sc = reward(s_sc, Action.STAY_OUT)
         # SC reward is closer to 0 (less penalty)
         assert r_sc > r_green, (
             f"SC should reduce penalty. r_green={r_green:.4f}, r_sc={r_sc:.4f}"
@@ -342,7 +473,7 @@ class TestRewardFunction:
     def test_pit_reward_varies_by_circuit(self, standard_state):
         """PIT reward must differ across circuits with different pit lane deltas."""
         r_monaco = reward(standard_state, Action.PIT_MEDIUM, circuit="monaco")
-        r_monza  = reward(standard_state, Action.PIT_MEDIUM, circuit="monza")
+        r_monza = reward(standard_state, Action.PIT_MEDIUM, circuit="monza")
         assert r_monaco != r_monza
 
 
@@ -350,8 +481,8 @@ class TestRewardFunction:
 # Lap time penalty model
 # ---------------------------------------------------------------------------
 
-class TestLapTimePenalty:
 
+class TestLapTimePenalty:
     def test_fresh_tyre_has_zero_penalty(self):
         """Brand new tyre (age=0) must have zero degradation penalty."""
         for compound in Compound:
@@ -365,7 +496,9 @@ class TestLapTimePenalty:
         for compound in [Compound.SOFT, Compound.MEDIUM, Compound.HARD]:
             for age in range(0, 51):
                 p = lap_time_penalty(age, compound, sc_active=False)
-                assert p >= 0.0, f"Negative penalty for {compound.name} age {age}: {p:.4f}"
+                assert p >= 0.0, (
+                    f"Negative penalty for {compound.name} age {age}: {p:.4f}"
+                )
 
     def test_penalty_increases_with_age(self):
         """Penalty must be non-decreasing with tyre age before the cliff."""
@@ -374,7 +507,7 @@ class TestLapTimePenalty:
             for age in range(0, 40):
                 curr = lap_time_penalty(age, compound, sc_active=False)
                 assert curr >= prev - 1e-9, (
-                    f"Penalty decreased from age {age-1} to {age} for {compound.name}: "
+                    f"Penalty decreased from age {age - 1} to {age} for {compound.name}: "
                     f"{prev:.4f} → {curr:.4f}"
                 )
                 prev = curr
@@ -384,7 +517,7 @@ class TestLapTimePenalty:
         for compound in [Compound.SOFT, Compound.MEDIUM, Compound.HARD]:
             for age in [5, 15, 25]:
                 p_green = lap_time_penalty(age, compound, sc_active=False)
-                p_sc    = lap_time_penalty(age, compound, sc_active=True)
+                p_sc = lap_time_penalty(age, compound, sc_active=True)
                 if p_green > 0:
                     assert p_sc < p_green, (
                         f"SC did not reduce penalty for {compound.name} age {age}: "
@@ -394,8 +527,8 @@ class TestLapTimePenalty:
     def test_soft_degrades_faster_than_hard(self):
         """SOFT compound must degrade faster than HARD at all tyre ages > 0."""
         for age in range(1, 35):
-            p_soft = lap_time_penalty(age, Compound.SOFT,   sc_active=False)
-            p_hard = lap_time_penalty(age, Compound.HARD,   sc_active=False)
+            p_soft = lap_time_penalty(age, Compound.SOFT, sc_active=False)
+            p_hard = lap_time_penalty(age, Compound.HARD, sc_active=False)
             assert p_soft >= p_hard, (
                 f"SOFT not worse than HARD at age {age}: soft={p_soft:.4f}, hard={p_hard:.4f}"
             )
@@ -403,19 +536,19 @@ class TestLapTimePenalty:
     def test_compound_ordering(self):
         """Degradation rate must follow: SOFT ≥ MEDIUM ≥ HARD."""
         for age in range(5, 30):
-            p_soft   = lap_time_penalty(age, Compound.SOFT,   sc_active=False)
+            p_soft = lap_time_penalty(age, Compound.SOFT, sc_active=False)
             p_medium = lap_time_penalty(age, Compound.MEDIUM, sc_active=False)
-            p_hard   = lap_time_penalty(age, Compound.HARD,   sc_active=False)
-            assert p_soft   >= p_medium - 1e-9, f"SOFT < MEDIUM at age {age}"
-            assert p_medium >= p_hard   - 1e-9, f"MEDIUM < HARD at age {age}"
+            p_hard = lap_time_penalty(age, Compound.HARD, sc_active=False)
+            assert p_soft >= p_medium - 1e-9, f"SOFT < MEDIUM at age {age}"
+            assert p_medium >= p_hard - 1e-9, f"MEDIUM < HARD at age {age}"
 
 
 # ---------------------------------------------------------------------------
 # State space enumeration
 # ---------------------------------------------------------------------------
 
-class TestStateEnumeration:
 
+class TestStateEnumeration:
     def test_enumeration_produces_states(self):
         """enumerate_states must yield at least some valid states."""
         states = list(enumerate_states(total_laps=5))
@@ -440,9 +573,9 @@ class TestStateEnumeration:
         """All compounds must appear in the enumerated states."""
         states = list(enumerate_states(total_laps=3))
         compounds_seen = {s.compound for s in states}
-        assert Compound.SOFT   in compounds_seen
+        assert Compound.SOFT in compounds_seen
         assert Compound.MEDIUM in compounds_seen
-        assert Compound.HARD   in compounds_seen
+        assert Compound.HARD in compounds_seen
 
     def test_all_enumerated_states_hashable(self):
         """Every enumerated state must be usable as a dict key."""
@@ -456,8 +589,8 @@ class TestStateEnumeration:
 # Pit lane delta constants
 # ---------------------------------------------------------------------------
 
-class TestPitLaneDelta:
 
+class TestPitLaneDelta:
     def test_all_deltas_positive(self):
         for circuit, delta in PIT_LANE_DELTA.items():
             assert delta > 0, f"Non-positive pit delta for {circuit}: {delta}"
