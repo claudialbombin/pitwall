@@ -1,0 +1,190 @@
+# .github/workflows/deploy.yml
+#
+# Deployment pipeline: builds the GitHub Pages site and deploys on every
+# push to main (after CI passes).
+#
+# The site is entirely static (HTML + JS + CSS in web/).
+# No build step needed — we just export the policies as JSON and copy
+# the web/ directory to Pages.
+#
+# Pipeline:
+#   1. Run the MDP solver for all circuits → results/optimal_policies.json
+#   2. Copy web/ + results/ to the Pages deployment directory
+#   3. Deploy via actions/deploy-pages
+#
+# The solver step is optional: if FastF1 data is not available (no cache),
+# the solver uses default parameters. This means the live site always
+# deploys, even without the full telemetry pipeline.
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:    # allow manual trigger from GitHub UI
+
+# Required permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages:    write
+  id-token: write
+
+# Only one deployment at a time; don't cancel in-progress deploys
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+
+  # ── Job 1: Solve and export policies ─────────────────────────────────────────
+  solve:
+    name: Solve MDP + export policies
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e "."
+
+      - name: Restore FastF1 cache (if available)
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: fastf1-cache-${{ hashFiles('data/fetch_data.py') }}
+          restore-keys: fastf1-cache-
+
+      - name: Create results directory
+        run: mkdir -p results
+
+      - name: Solve MDP for all circuits and export JSON
+        run: |
+          python - <<'EOF'
+          import json
+          import numpy as np
+          from core.tyre_model import TyreModel
+          from core.safety_car import SafetyCarModel
+          from core.solver import PitStopSolver, SolverConfig, value_function_heatmap
+          from core.race_sim import CIRCUITS
+          from core.mdp import Compound
+
+          all_data = {}
+
+          for circuit_name, cfg in CIRCUITS.items():
+              print(f"Solving {circuit_name}...")
+              tyre = TyreModel()
+              sc   = SafetyCarModel(circuit=circuit_name, total_laps=cfg.total_laps)
+
+              solver_cfg = SolverConfig(
+                  total_laps=cfg.total_laps,
+                  circuit=circuit_name,
+                  n_positions=5,
+                  verbose=False,
+              )
+              policy, values = PitStopSolver(solver_cfg, tyre, sc).solve()
+
+              # Export tyre model summary
+              tyre_summary = tyre.summary()
+
+              # Export SC heatmap (per-lap deployment probability)
+              sc_heatmap = sc.deployment_heatmap().tolist()
+
+              # Export value function slice (MEDIUM compound, position 5)
+              vf_medium = value_function_heatmap(
+                  values, Compound.MEDIUM, total_laps=cfg.total_laps
+              ).tolist()
+
+              all_data[circuit_name] = {
+                  "total_laps":       cfg.total_laps,
+                  "pit_lane_delta":   cfg.pit_lane_delta,
+                  "base_lap_time":    cfg.base_lap_time,
+                  "tyre_model":       tyre_summary,
+                  "sc_model":         sc.summary(),
+                  "sc_heatmap":       sc_heatmap,
+                  "value_function":   vf_medium,
+              }
+              print(f"  Done. Policy size: {len(policy):,} states.")
+
+          with open("results/optimal_policies.json", "w") as f:
+              json.dump(all_data, f, indent=2)
+
+          print("Exported results/optimal_policies.json")
+          EOF
+
+      - name: Upload results artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: results
+          path: results/
+          retention-days: 1
+
+
+  # ── Job 2: Build Pages site ───────────────────────────────────────────────────
+  build:
+    name: Build GitHub Pages site
+    runs-on: ubuntu-latest
+    needs: solve
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download results artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: results
+          path: results/
+
+      - name: Set up Pages
+        uses: actions/configure-pages@v5
+
+      - name: Assemble site directory
+        run: |
+          mkdir -p _site
+          # Copy the entire web/ directory as root of site
+          cp -r web/. _site/
+          # Make results available to the JS frontend
+          mkdir -p _site/data
+          cp results/optimal_policies.json _site/data/
+          cp results/backtest_summary.csv  _site/data/ 2>/dev/null || echo "No backtest CSV yet"
+          # Add .nojekyll so GitHub Pages serves files starting with _
+          touch _site/.nojekyll
+          echo "Site contents:"
+          find _site -type f | sort
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site/
+
+
+  # ── Job 3: Deploy ─────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 5
+
+    environment:
+      name: github-pages
+      url:  ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Print deployment URL
+        run: |
+          echo "Deployed to: ${{ steps.deployment.outputs.page_url }}"
+          echo "Simulator:   ${{ steps.deployment.outputs.page_url }}simulator.html"
+          echo "Explainer:   ${{ steps.deployment.outputs.page_url }}explainer.html"
