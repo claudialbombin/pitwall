@@ -104,7 +104,7 @@ except ImportError:
 # Type aliases
 # ---------------------------------------------------------------------------
 
-ValueTable  = dict[tuple, float]   # state_key → V*(s, t)
+ValueTable = dict[tuple, float]  # state_key → V*(s, t)
 PolicyTable = dict[tuple, Action]  # state_key → π*(s, t)
 
 TransitionFn = Callable[[State, Action], list[tuple[State, float]]]
@@ -115,10 +115,14 @@ TransitionFn = Callable[[State, Action], list[tuple[State, float]]]
 # Transition kernel
 # ---------------------------------------------------------------------------
 
-def transition(state: State, action: Action,
-               tyre_model,        # TyreModel instance from tyre_model.py
-               safety_car_model,  # SafetyCarModel instance from safety_car.py
-               circuit: str = "default") -> list[tuple[State, float]]:
+
+def transition(
+    state: State,
+    action: Action,
+    tyre_model,  # TyreModel instance from tyre_model.py
+    safety_car_model,  # SafetyCarModel instance from safety_car.py
+    circuit: str = "default",
+) -> list[tuple[State, float]]:
     """
     Compute P(s' | s, action) — the stochastic transition kernel.
 
@@ -136,31 +140,31 @@ def transition(state: State, action: Action,
     next_states: list[tuple[State, float]] = []
 
     # --- Safety car transition ---
-    p_sc_on  = safety_car_model.p_deploy(state.lap)
+    p_sc_on = safety_car_model.p_deploy(state.lap)
     p_sc_off = safety_car_model.p_clear(state.lap)
 
     if state.sc_active:
-        p_sc_next_on  = 1.0 - p_sc_off
+        p_sc_next_on = 1.0 - p_sc_off
         p_sc_next_off = p_sc_off
     else:
-        p_sc_next_on  = p_sc_on
+        p_sc_next_on = p_sc_on
         p_sc_next_off = 1.0 - p_sc_on
 
     # --- Tyre age transition ---
     if action == Action.STAY_OUT:
-        new_tyre_age   = state.tyre_age + 1
-        new_compound   = state.compound
-        new_pit_used   = state.pit_used
-        new_position   = state.position  # simplified; race_sim handles dynamics
+        new_tyre_age = state.tyre_age + 1
+        new_compound = state.compound
+        new_pit_used = state.pit_used
+        new_position = state.position  # simplified; race_sim handles dynamics
     else:
-        new_compound   = action_to_compound(action)
-        new_tyre_age   = 0
-        new_pit_used   = state.pit_used + 1
-        new_position   = min(20, state.position + 2)  # conservative pos loss
+        new_compound = action_to_compound(action)
+        new_tyre_age = 0
+        new_pit_used = state.pit_used + 1
+        new_position = min(20, state.position + 2)  # conservative pos loss
 
     # --- Gap dynamics (simplified: two bins of gap change) ---
     # Full model in race_sim.py; here we use a coarse approximation
-    gap_ahead_next  = min(N_GAP_BINS - 1, max(0, state.gap_ahead))
+    gap_ahead_next = min(N_GAP_BINS - 1, max(0, state.gap_ahead))
     gap_behind_next = min(N_GAP_BINS - 1, max(0, state.gap_behind))
 
     # Build distribution over (sc_active) × (deterministic rest)
@@ -188,14 +192,15 @@ def transition(state: State, action: Action,
 # Value Iteration Solver
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class SolverConfig:
-    total_laps:  int   = 66
-    circuit:     str   = "silverstone"
-    n_positions: int   = 20
-    verbose:     bool  = True
-    prune_age:   int   = 5      # prune states with tyre_age > cliff + prune_age
-    n_workers:   int   = 4      # parallel workers for lap-level DP
+    total_laps: int = 66
+    circuit: str = "silverstone"
+    n_positions: int = 20
+    verbose: bool = True
+    prune_age: int = 5  # prune states with tyre_age > cliff + prune_age
+    n_workers: int = 4  # parallel workers for lap-level DP
 
 
 class PitStopSolver:
@@ -209,12 +214,12 @@ class PitStopSolver:
     """
 
     def __init__(self, config: SolverConfig, tyre_model, safety_car_model):
-        self.cfg   = config
-        self.tyre  = tyre_model
-        self.sc    = safety_car_model
+        self.cfg = config
+        self.tyre = tyre_model
+        self.sc = safety_car_model
 
         # V[state_key] = expected remaining time loss from this state
-        self.V: ValueTable  = defaultdict(float)
+        self.V: ValueTable = defaultdict(float)
         # π[state_key] = optimal action from this state
         self.pi: PolicyTable = {}
 
@@ -238,15 +243,19 @@ class PitStopSolver:
         # (defaultdict(float) initialises to 0, so nothing to set explicitly)
 
         if self.cfg.verbose:
-            print(f"Starting backward induction | {self.cfg.total_laps} laps | "
-                  f"circuit: {self.cfg.circuit}")
+            print(
+                f"Starting backward induction | {self.cfg.total_laps} laps | "
+                f"circuit: {self.cfg.circuit}"
+            )
 
         for lap in range(self.cfg.total_laps, 0, -1):
             n_states = self._solve_lap(lap)
             if self.cfg.verbose and lap % 10 == 0:
                 elapsed = time.perf_counter() - t0
-                print(f"  Lap {lap:3d} | states processed: {n_states:,} | "
-                      f"elapsed: {elapsed:.1f}s")
+                print(
+                    f"  Lap {lap:3d} | states processed: {n_states:,} | "
+                    f"elapsed: {elapsed:.1f}s"
+                )
 
         self._solve_time = time.perf_counter() - t0
         if self.cfg.verbose:
@@ -302,7 +311,7 @@ class PitStopSolver:
         if not actions:
             return
 
-        best_value  = -np.inf
+        best_value = -np.inf
         best_action = actions[0]
 
         for action in actions:
@@ -310,37 +319,49 @@ class PitStopSolver:
             r = reward(state, action, self.cfg.circuit)
 
             # Expected future value: Σ_{s'} P(s'|s,a) · V*(s', t+1)
-            successors = transition(state, action, self.tyre, self.sc,
-                                    self.cfg.circuit)
-            future = sum(p * self.V[self._key(s_next)]
-                         for s_next, p in successors)
+            successors = transition(state, action, self.tyre, self.sc, self.cfg.circuit)
+            future = sum(p * self.V[self._key(s_next)] for s_next, p in successors)
 
             q_value = r + future  # No discounting (γ = 1)
 
             if q_value > best_value:
-                best_value  = q_value
+                best_value = q_value
                 best_action = action
 
         key = self._key(state)
-        self.V[key]  = best_value
+        self.V[key] = best_value
         self.pi[key] = best_action
 
     @staticmethod
     def _key(state: State) -> tuple:
         """Hashable key for state lookup in value / policy tables."""
-        return (state.lap, state.compound, state.tyre_age, state.position,
-                state.gap_ahead, state.gap_behind, state.pit_used, state.sc_active)
+        return (
+            state.lap,
+            state.compound,
+            state.tyre_age,
+            state.position,
+            state.gap_ahead,
+            state.gap_behind,
+            state.pit_used,
+            state.sc_active,
+        )
 
 
 # ---------------------------------------------------------------------------
 # Policy analysis utilities
 # ---------------------------------------------------------------------------
 
-def pit_window(policy: PolicyTable, compound: Compound,
-               position: int = 10, gap_ahead: int = 1,
-               gap_behind: int = 1, pit_used: int = 0,
-               sc_active: bool = False,
-               total_laps: int = 66) -> list[int]:
+
+def pit_window(
+    policy: PolicyTable,
+    compound: Compound,
+    position: int = 10,
+    gap_ahead: int = 1,
+    gap_behind: int = 1,
+    pit_used: int = 0,
+    sc_active: bool = False,
+    total_laps: int = 66,
+) -> list[int]:
     """
     Extract the optimal pit window for a given compound and race context.
 
@@ -354,8 +375,16 @@ def pit_window(policy: PolicyTable, compound: Compound,
     pit_laps = []
     for lap in range(1, total_laps + 1):
         for tyre_age in range(0, 51):
-            key = (lap, compound, tyre_age, position, gap_ahead,
-                   gap_behind, pit_used, sc_active)
+            key = (
+                lap,
+                compound,
+                tyre_age,
+                position,
+                gap_ahead,
+                gap_behind,
+                pit_used,
+                sc_active,
+            )
             action = policy.get(key, Action.STAY_OUT)
             if action != Action.STAY_OUT:
                 pit_laps.append(lap)
@@ -363,9 +392,9 @@ def pit_window(policy: PolicyTable, compound: Compound,
     return pit_laps
 
 
-def value_function_heatmap(values: ValueTable, compound: Compound,
-                            total_laps: int = 66,
-                            position: int = 10) -> np.ndarray:
+def value_function_heatmap(
+    values: ValueTable, compound: Compound, total_laps: int = 66, position: int = 10
+) -> np.ndarray:
     """
     Extract a 2D slice of the value function: V*(lap, tyre_age).
 
