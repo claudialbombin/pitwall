@@ -96,30 +96,29 @@ References:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from enum import IntEnum, auto
+from dataclasses import dataclass
+from enum import IntEnum
 from typing import Iterator
-
-import numpy as np
 
 
 # ---------------------------------------------------------------------------
 # Enumerations
 # ---------------------------------------------------------------------------
 
+
 class Compound(IntEnum):
-    SOFT   = 0
+    SOFT = 0
     MEDIUM = 1
-    HARD   = 2
-    INTER  = 3
-    WET    = 4
+    HARD = 2
+    INTER = 3
+    WET = 4
 
 
 class Action(IntEnum):
-    STAY_OUT   = 0
-    PIT_SOFT   = 1
+    STAY_OUT = 0
+    PIT_SOFT = 1
     PIT_MEDIUM = 2
-    PIT_HARD   = 3
+    PIT_HARD = 3
 
 
 # Gap discretisation bins (seconds)
@@ -139,6 +138,7 @@ def discretise_gap(gap_seconds: float) -> int:
 # State
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class State:
     """
@@ -147,14 +147,15 @@ class State:
     Frozen dataclass → hashable → usable as dict key (required for value
     iteration, which stores V*(s) in a lookup table).
     """
-    lap:         int       # 1-indexed
-    compound:    Compound
-    tyre_age:    int       # laps on current set, 0 = brand new
-    position:    int       # 1 = lead, 20 = last
-    gap_ahead:   int       # discretised bin index (0 = DRS range)
-    gap_behind:  int       # discretised bin index
-    pit_used:    int       # 0, 1, or 2 stops taken
-    sc_active:   bool      # safety car or VSC on track
+
+    lap: int  # 1-indexed
+    compound: Compound
+    tyre_age: int  # laps on current set, 0 = brand new
+    position: int  # 1 = lead, 20 = last
+    gap_ahead: int  # discretised bin index (0 = DRS range)
+    gap_behind: int  # discretised bin index
+    pit_used: int  # 0, 1, or 2 stops taken
+    sc_active: bool  # safety car or VSC on track
 
     def __post_init__(self) -> None:
         assert 1 <= self.lap, "Lap must be ≥ 1"
@@ -188,9 +189,14 @@ class State:
             sc_active=self.sc_active,
         )
 
-    def with_lap_completed(self, new_tyre_age: int, new_position: int,
-                           new_gap_ahead: int, new_gap_behind: int,
-                           sc_active: bool) -> "State":
+    def with_lap_completed(
+        self,
+        new_tyre_age: int,
+        new_position: int,
+        new_gap_ahead: int,
+        new_gap_behind: int,
+        sc_active: bool,
+    ) -> "State":
         """Return state after completing one racing lap (no pit stop)."""
         return State(
             lap=self.lap + 1,
@@ -211,16 +217,17 @@ class State:
 # Pit lane delta by circuit (seconds). Varies significantly:
 #   Monaco ≈ 22s, Monza ≈ 23s, Silverstone ≈ 19s, Spa ≈ 18s
 PIT_LANE_DELTA: dict[str, float] = {
-    "monaco":      22.0,
-    "monza":       23.4,
+    "monaco": 22.0,
+    "monza": 23.4,
     "silverstone": 18.9,
-    "spa":         18.2,
-    "default":     20.5,
+    "spa": 18.2,
+    "default": 20.5,
 }
 
 
-def available_actions(state: State, total_laps: int,
-                      circuit: str = "default") -> list[Action]:
+def available_actions(
+    state: State, total_laps: int, circuit: str = "default"
+) -> list[Action]:
     """
     Return the list of actions legally available from a given state.
 
@@ -246,9 +253,9 @@ def available_actions(state: State, total_laps: int,
 def action_to_compound(action: Action) -> Compound | None:
     """Map a pit action to the target compound. Returns None for STAY_OUT."""
     mapping = {
-        Action.PIT_SOFT:   Compound.SOFT,
+        Action.PIT_SOFT: Compound.SOFT,
         Action.PIT_MEDIUM: Compound.MEDIUM,
-        Action.PIT_HARD:   Compound.HARD,
+        Action.PIT_HARD: Compound.HARD,
     }
     return mapping.get(action)
 
@@ -261,8 +268,8 @@ def action_to_compound(action: Action) -> Compound | None:
 # The reward R(s,a) is negative lap time — we maximise cumulative reward,
 # which is equivalent to minimising total race time.
 
-def lap_time_penalty(tyre_age: int, compound: Compound,
-                     sc_active: bool) -> float:
+
+def lap_time_penalty(tyre_age: int, compound: Compound, sc_active: bool) -> float:
     """
     Compute the lap time DELTA relative to a theoretical perfect lap (zero penalty).
 
@@ -275,22 +282,22 @@ def lap_time_penalty(tyre_age: int, compound: Compound,
     """
     # Base pace loss from tyre age (seconds above theoretical minimum)
     base_deg = {
-        Compound.SOFT:   0.08,   # fastest deg rate
+        Compound.SOFT: 0.08,  # fastest deg rate
         Compound.MEDIUM: 0.05,
-        Compound.HARD:   0.03,   # slowest deg rate
-        Compound.INTER:  0.04,
-        Compound.WET:    0.02,
+        Compound.HARD: 0.03,  # slowest deg rate
+        Compound.INTER: 0.04,
+        Compound.WET: 0.02,
     }
     deg_rate = base_deg[compound]
 
     # Degradation is approximately linear early, then accelerates ("cliff")
     # Full model in tyre_model.py; here we use a simple piecewise linear form
     cliff_lap = {
-        Compound.SOFT:   18,
+        Compound.SOFT: 18,
         Compound.MEDIUM: 28,
-        Compound.HARD:   40,
-        Compound.INTER:  25,
-        Compound.WET:    35,
+        Compound.HARD: 40,
+        Compound.INTER: 25,
+        Compound.WET: 35,
     }[compound]
 
     if tyre_age <= cliff_lap:
@@ -306,8 +313,7 @@ def lap_time_penalty(tyre_age: int, compound: Compound,
     return penalty
 
 
-def reward(state: State, action: Action,
-           circuit: str = "default") -> float:
+def reward(state: State, action: Action, circuit: str = "default") -> float:
     """
     Immediate reward for taking action in state.
 
@@ -330,6 +336,7 @@ def reward(state: State, action: Action,
 # ---------------------------------------------------------------------------
 # State space enumeration (for exact value iteration)
 # ---------------------------------------------------------------------------
+
 
 def enumerate_states(total_laps: int) -> Iterator[State]:
     """
