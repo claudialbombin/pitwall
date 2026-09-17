@@ -110,7 +110,6 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -119,7 +118,7 @@ from scipy.special import gamma as gamma_fn
 # Optional GPR backend — graceful fallback to Weibull-only if not installed
 try:
     from sklearn.gaussian_process import GaussianProcessRegressor
-    from sklearn.gaussian_process.kernels import Matern, WhiteKernel, ConstantKernel
+    from sklearn.gaussian_process.kernels import ConstantKernel, Matern, WhiteKernel
 
     _GPR_AVAILABLE = True
 except ImportError:
@@ -212,9 +211,7 @@ class WeibullTyreModel:
         if self.d0 == 0.0:
             self.d0 = MAX_DEGRADATION[self.compound]
 
-    def fit(
-        self, tyre_ages: np.ndarray, lap_time_deltas: np.ndarray
-    ) -> "WeibullTyreModel":
+    def fit(self, tyre_ages: np.ndarray, lap_time_deltas: np.ndarray) -> WeibullTyreModel:
         """
         Fit Weibull parameters to observed (tyre_age, lap_time_delta) data.
 
@@ -246,9 +243,9 @@ class WeibullTyreModel:
             self._fitted = True
         except RuntimeError as e:
             warnings.warn(
-                f"Weibull fit failed for {self.compound.name}: {e}. "
-                "Using default parameters.",
+                f"Weibull fit failed for {self.compound.name}: {e}. Using default parameters.",
                 RuntimeWarning,
+                stacklevel=2,
             )
 
         return self
@@ -308,19 +305,17 @@ class GPRTyreModel:
     compound: Compound
     length_scale: float = 10.0  # Matérn kernel length scale (laps)
     noise_level: float = 0.05  # Observation noise (seconds)
-    _gpr: Optional[object] = field(default=None, init=False, repr=False)
+    _gpr: object | None = field(default=None, init=False, repr=False)
     _weibull: WeibullTyreModel = field(init=False, repr=False)
     _fitted: bool = field(default=False, init=False, repr=False)
-    _X_train: Optional[np.ndarray] = field(default=None, init=False, repr=False)
+    _X_train: np.ndarray | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         self._weibull = WeibullTyreModel(self.compound)
         if _GPR_AVAILABLE:
             kernel = ConstantKernel(1.0, constant_value_bounds=(0.1, 5.0)) * Matern(
                 length_scale=self.length_scale, length_scale_bounds=(3.0, 40.0), nu=2.5
-            ) + WhiteKernel(
-                noise_level=self.noise_level, noise_level_bounds=(1e-3, 0.5)
-            )
+            ) + WhiteKernel(noise_level=self.noise_level, noise_level_bounds=(1e-3, 0.5))
             self._gpr = GaussianProcessRegressor(
                 kernel=kernel,
                 n_restarts_optimizer=5,
@@ -328,7 +323,7 @@ class GPRTyreModel:
                 random_state=42,
             )
 
-    def fit(self, tyre_ages: np.ndarray, lap_time_deltas: np.ndarray) -> "GPRTyreModel":
+    def fit(self, tyre_ages: np.ndarray, lap_time_deltas: np.ndarray) -> GPRTyreModel:
         """
         Fit GPR to (tyre_age, delta) observations.
 
@@ -394,9 +389,7 @@ class GPRTyreModel:
             return mean, residual_std
         return mean
 
-    def upper_confidence_bound(
-        self, tyre_age: float | np.ndarray, beta: float = 1.5
-    ) -> np.ndarray:
+    def upper_confidence_bound(self, tyre_age: float | np.ndarray, beta: float = 1.5) -> np.ndarray:
         """
         UCB(t) = μ*(t) + β · σ*(t)
 
@@ -465,20 +458,16 @@ class TyreModel:
     """
 
     def __init__(self) -> None:
-        self._models: dict[Compound, GPRTyreModel] = {
-            c: GPRTyreModel(c) for c in Compound
-        }
+        self._models: dict[Compound, GPRTyreModel] = {c: GPRTyreModel(c) for c in Compound}
 
     def fit(
         self, compound: Compound, tyre_ages: np.ndarray, lap_time_deltas: np.ndarray
-    ) -> "TyreModel":
+    ) -> TyreModel:
         """Fit model for a specific compound from raw telemetry arrays."""
         self._models[compound].fit(tyre_ages, lap_time_deltas)
         return self
 
-    def fit_from_fastf1(
-        self, year: int, circuit: str, session: str = "R"
-    ) -> "TyreModel":
+    def fit_from_fastf1(self, year: int, circuit: str, session: str = "R") -> TyreModel:
         """
         Fetch telemetry via FastF1 and fit all compound models.
 
@@ -489,11 +478,10 @@ class TyreModel:
         """
         try:
             import fastf1  # type: ignore[import]
-        except ImportError:
+        except ImportError as exc:
             raise ImportError(
-                "fastf1 is required for telemetry-based fitting. "
-                "Install with: pip install fastf1"
-            )
+                "fastf1 is required for telemetry-based fitting. Install with: pip install fastf1"
+            ) from exc
 
         fastf1.Cache.enable_cache("data/raw")
         session_obj = fastf1.get_session(year, circuit, session)
@@ -518,6 +506,7 @@ class TyreModel:
                     f"Fewer than 10 clean laps for {compound_name} "
                     f"at {circuit} {year}. Skipping fit.",
                     RuntimeWarning,
+                    stacklevel=2,
                 )
                 continue
 

@@ -70,6 +70,8 @@ ignore = [
     "N803",   # argument name should be lowercase (allows math notation: N, T, V)
     "N806",   # variable in function should be lowercase (allows: V, Q, R, P)
     "SIM108", # ternary operator (sometimes less readable for maths)
+    "RUF002", # ambiguous unicode in docstrings (allows ×, α, β, γ in maths prose)
+    "RUF003", # ambiguous unicode in comments (same reason as RUF002)
 ]
 
 [tool.ruff.lint.per-file-ignores]

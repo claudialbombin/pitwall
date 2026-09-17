@@ -24,25 +24,24 @@ GitHub: https://github.com/claudialbombin/pitwall
 import sys
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "core"))
 
 from mdp import (
+    N_GAP_BINS,
+    PIT_LANE_DELTA,
     Action,
     Compound,
     State,
-    available_actions,
     action_to_compound,
-    reward,
-    lap_time_penalty,
+    available_actions,
     discretise_gap,
     enumerate_states,
-    N_GAP_BINS,
-    PIT_LANE_DELTA,
+    lap_time_penalty,
+    reward,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -358,9 +357,7 @@ class TestAvailableActions:
                     sc_active=False,
                 )
                 actions = available_actions(s, total_laps=52)
-                assert len(actions) > 0, (
-                    f"Empty action set at lap={lap}, pit_used={pit_used}"
-                )
+                assert len(actions) > 0, f"Empty action set at lap={lap}, pit_used={pit_used}"
 
     def test_action_to_compound_mapping(self):
         """Each pit action must map to the correct compound."""
@@ -403,9 +400,7 @@ class TestRewardFunction:
         """The pit action reward must reflect the pit lane delta as a cost."""
         r_pit = reward(standard_state, Action.PIT_MEDIUM, circuit="silverstone")
         expected = -PIT_LANE_DELTA["silverstone"]
-        assert abs(r_pit - expected) < 1e-9, (
-            f"Pit reward {r_pit:.3f} != expected {expected:.3f}"
-        )
+        assert abs(r_pit - expected) < 1e-9, f"Pit reward {r_pit:.3f} != expected {expected:.3f}"
 
     def test_stay_out_reward_worsens_with_tyre_age(self):
         """
@@ -428,8 +423,7 @@ class TestRewardFunction:
         # Rewards should be monotonically non-increasing
         for i in range(len(rewards) - 1):
             assert rewards[i] >= rewards[i + 1], (
-                f"Reward increased from age {i} to {i + 1}: "
-                f"{rewards[i]:.4f} → {rewards[i + 1]:.4f}"
+                f"Reward increased from age {i} to {i + 1}: {rewards[i]:.4f} → {rewards[i + 1]:.4f}"
             )
 
     def test_sc_reduces_lap_time_penalty(self):
@@ -460,9 +454,7 @@ class TestRewardFunction:
         r_green = reward(s_green, Action.STAY_OUT)
         r_sc = reward(s_sc, Action.STAY_OUT)
         # SC reward is closer to 0 (less penalty)
-        assert r_sc > r_green, (
-            f"SC should reduce penalty. r_green={r_green:.4f}, r_sc={r_sc:.4f}"
-        )
+        assert r_sc > r_green, f"SC should reduce penalty. r_green={r_green:.4f}, r_sc={r_sc:.4f}"
 
     def test_reward_circuit_independence_for_stay_out(self, standard_state):
         """STAY_OUT reward should not depend on circuit (pit delta not involved)."""
@@ -496,9 +488,7 @@ class TestLapTimePenalty:
         for compound in [Compound.SOFT, Compound.MEDIUM, Compound.HARD]:
             for age in range(0, 51):
                 p = lap_time_penalty(age, compound, sc_active=False)
-                assert p >= 0.0, (
-                    f"Negative penalty for {compound.name} age {age}: {p:.4f}"
-                )
+                assert p >= 0.0, f"Negative penalty for {compound.name} age {age}: {p:.4f}"
 
     def test_penalty_increases_with_age(self):
         """Penalty must be non-decreasing with tyre age before the cliff."""

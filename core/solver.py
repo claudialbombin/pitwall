@@ -73,30 +73,30 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 import numpy as np
 
 try:
     from .mdp import (
+        N_GAP_BINS,
         Action,
         Compound,
         State,
-        available_actions,
         action_to_compound,
+        available_actions,
         reward,
-        N_GAP_BINS,
     )
 except ImportError:
     from mdp import (
+        N_GAP_BINS,
         Action,
         Compound,
         State,
-        available_actions,
         action_to_compound,
+        available_actions,
         reward,
-        N_GAP_BINS,
     )
 
 
@@ -252,10 +252,7 @@ class PitStopSolver:
             n_states = self._solve_lap(lap)
             if self.cfg.verbose and lap % 10 == 0:
                 elapsed = time.perf_counter() - t0
-                print(
-                    f"  Lap {lap:3d} | states processed: {n_states:,} | "
-                    f"elapsed: {elapsed:.1f}s"
-                )
+                print(f"  Lap {lap:3d} | states processed: {n_states:,} | elapsed: {elapsed:.1f}s")
 
         self._solve_time = time.perf_counter() - t0
         if self.cfg.verbose:

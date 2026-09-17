@@ -113,9 +113,7 @@ GREEN_CODE = "1"
 # ---------------------------------------------------------------------------
 
 
-def fetch_session(
-    year: int, circuit: str, session_type: str = "R"
-) -> pd.DataFrame | None:
+def fetch_session(year: int, circuit: str, session_type: str = "R") -> pd.DataFrame | None:
     """
     Download a single session from FastF1 and return lap data as a DataFrame.
 
@@ -129,8 +127,8 @@ def fetch_session(
     """
     try:
         import fastf1  # type: ignore[import]
-    except ImportError:
-        raise ImportError("fastf1 is required. Install with:\n  pip install fastf1")
+    except ImportError as exc:
+        raise ImportError("fastf1 is required. Install with:\n  pip install fastf1") from exc
 
     fastf1.Cache.enable_cache(str(RAW_DIR))
 
@@ -288,7 +286,7 @@ def extract_sc_events(laps: pd.DataFrame) -> pd.DataFrame:
         sc_laps = race_laps[race_laps["SC"]]["LapNumber"].unique()
         vsc_laps = race_laps[race_laps["VSC"]]["LapNumber"].unique()
 
-        for code, lap_set, sc_type in [
+        for _code, lap_set, sc_type in [
             ("SC", sc_laps, "SAFETY_CAR"),
             ("VSC", vsc_laps, "VIRTUAL_SC"),
         ]:
@@ -367,9 +365,7 @@ def run_pipeline(
                 all_laps.append(clean)
 
     if not all_laps:
-        log.error(
-            "No laps fetched. Check your FastF1 installation and internet connection."
-        )
+        log.error("No laps fetched. Check your FastF1 installation and internet connection.")
         return
 
     combined = pd.concat(all_laps, ignore_index=True)
@@ -405,9 +401,7 @@ def run_pipeline(
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Fetch and process F1 telemetry data via FastF1."
-    )
+    parser = argparse.ArgumentParser(description="Fetch and process F1 telemetry data via FastF1.")
     parser.add_argument(
         "--years",
         nargs="+",

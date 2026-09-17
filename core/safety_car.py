@@ -95,11 +95,9 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 from scipy import stats
-
 
 # ---------------------------------------------------------------------------
 # Default priors (Beta distribution parameters)
@@ -180,7 +178,7 @@ class BayesianLapProbability:
     alpha: float = _PRIOR_ALPHA
     beta: float = _PRIOR_BETA
 
-    def update(self, n_races: int, n_sc_events: int) -> "BayesianLapProbability":
+    def update(self, n_races: int, n_sc_events: int) -> BayesianLapProbability:
         """Update posterior with observed data."""
         return BayesianLapProbability(
             alpha=self.alpha + n_sc_events,
@@ -243,9 +241,7 @@ class SafetyCarModel:
     total_laps: int = 66
 
     # Per-lap Bayesian probability models (populated during fit or from defaults)
-    _lap_probs: list[BayesianLapProbability] = field(
-        default_factory=list, init=False, repr=False
-    )
+    _lap_probs: list[BayesianLapProbability] = field(default_factory=list, init=False, repr=False)
     _p_clear: float = field(default=_DEFAULT_P_CLEAR, init=False)
     _fitted: bool = field(default=False, init=False, repr=False)
 
@@ -279,7 +275,7 @@ class SafetyCarModel:
     # Fitting from FastF1 data
     # ------------------------------------------------------------------
 
-    def fit_from_fastf1(self, year: int | list[int]) -> "SafetyCarModel":
+    def fit_from_fastf1(self, year: int | list[int]) -> SafetyCarModel:
         """
         Update Bayesian priors with observed SC deployments from FastF1.
 
@@ -293,8 +289,8 @@ class SafetyCarModel:
         """
         try:
             import fastf1  # type: ignore[import]
-        except ImportError:
-            raise ImportError("fastf1 required. Install with: pip install fastf1")
+        except ImportError as exc:
+            raise ImportError("fastf1 required. Install with: pip install fastf1") from exc
 
         years = [year] if isinstance(year, int) else year
         fastf1.Cache.enable_cache("data/raw")
@@ -309,11 +305,11 @@ class SafetyCarModel:
                 all_sc_laps.append(sc_laps)
             except Exception as e:
                 warnings.warn(
-                    f"Could not load {self.circuit} {yr}: {e}", RuntimeWarning
+                    f"Could not load {self.circuit} {yr}: {e}", RuntimeWarning, stacklevel=2
                 )
 
         if not all_sc_laps:
-            warnings.warn("No sessions loaded. Using prior only.", RuntimeWarning)
+            warnings.warn("No sessions loaded. Using prior only.", RuntimeWarning, stacklevel=2)
             return self
 
         n_races = len(all_sc_laps)
@@ -321,12 +317,8 @@ class SafetyCarModel:
         # Update per-lap posteriors
         for lap_idx in range(self.total_laps):
             lap_num = lap_idx + 1
-            n_sc_on_this_lap = sum(
-                1 for race_sc_laps in all_sc_laps if lap_num in race_sc_laps
-            )
-            self._lap_probs[lap_idx] = self._lap_probs[lap_idx].update(
-                n_races, n_sc_on_this_lap
-            )
+            n_sc_on_this_lap = sum(1 for race_sc_laps in all_sc_laps if lap_num in race_sc_laps)
+            self._lap_probs[lap_idx] = self._lap_probs[lap_idx].update(n_races, n_sc_on_this_lap)
 
         # Update p_clear from observed durations
         durations = self._extract_durations(all_sc_laps)
@@ -420,9 +412,7 @@ class SafetyCarModel:
     # Sampling (used by race_sim.py Monte Carlo)
     # ------------------------------------------------------------------
 
-    def sample_sc_events(
-        self, rng: Optional[np.random.Generator] = None
-    ) -> list[tuple[int, int]]:
+    def sample_sc_events(self, rng: np.random.Generator | None = None) -> list[tuple[int, int]]:
         """
         Sample a complete race's SC events from the stochastic model.
 
@@ -459,7 +449,7 @@ class SafetyCarModel:
 
         return events
 
-    def sample_duration(self, rng: Optional[np.random.Generator] = None) -> int:
+    def sample_duration(self, rng: np.random.Generator | None = None) -> int:
         """
         Sample a single SC duration from the Geometric model.
 

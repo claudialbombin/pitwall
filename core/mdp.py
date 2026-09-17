@@ -96,10 +96,9 @@ References:
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Iterator
-
 
 # ---------------------------------------------------------------------------
 # Enumerations
@@ -158,7 +157,7 @@ class State:
     sc_active: bool  # safety car or VSC on track
 
     def __post_init__(self) -> None:
-        assert 1 <= self.lap, "Lap must be ≥ 1"
+        assert self.lap >= 1, "Lap must be ≥ 1"
         assert 0 <= self.tyre_age <= 60, "Tyre age out of range"
         assert 1 <= self.position <= 20, "Position must be 1-20"
         assert 0 <= self.gap_ahead < N_GAP_BINS
@@ -170,7 +169,7 @@ class State:
         """A state is terminal when there are no more decisions to make."""
         return False  # Termination handled by the horizon T in the solver
 
-    def with_pit(self, new_compound: Compound, pos_delta: int = 2) -> "State":
+    def with_pit(self, new_compound: Compound, pos_delta: int = 2) -> State:
         """
         Return the state immediately after completing a pit stop.
 
@@ -196,7 +195,7 @@ class State:
         new_gap_ahead: int,
         new_gap_behind: int,
         sc_active: bool,
-    ) -> "State":
+    ) -> State:
         """Return state after completing one racing lap (no pit stop)."""
         return State(
             lap=self.lap + 1,
@@ -225,9 +224,7 @@ PIT_LANE_DELTA: dict[str, float] = {
 }
 
 
-def available_actions(
-    state: State, total_laps: int, circuit: str = "default"
-) -> list[Action]:
+def available_actions(state: State, total_laps: int, circuit: str = "default") -> list[Action]:
     """
     Return the list of actions legally available from a given state.
 

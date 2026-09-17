@@ -38,15 +38,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "core"))
 
+from mdp import Compound
 from tyre_model import (
-    WeibullTyreModel,
+    MAX_DEGRADATION,
     GPRTyreModel,
     TyreModel,
+    WeibullTyreModel,
     _weibull_degradation,
-    MAX_DEGRADATION,
 )
-from mdp import Compound
-
 
 # ---------------------------------------------------------------------------
 # Synthetic training data fixtures
@@ -123,9 +122,7 @@ class TestWeibullMathematics:
         for k in [1.5, 2.5, 4.0]:
             for lam in [10, 25, 40]:
                 result = _weibull_degradation(np.array([0.0]), k, lam, 2.0)
-                assert result[0] == pytest.approx(0.0, abs=1e-10), (
-                    f"D(0) != 0 for k={k}, lam={lam}"
-                )
+                assert result[0] == pytest.approx(0.0, abs=1e-10), f"D(0) != 0 for k={k}, lam={lam}"
 
     def test_weibull_approaches_d0_at_infinity(self):
         """D(t) → D₀ as t → ∞."""
@@ -272,9 +269,7 @@ class TestGPRTyreModel:
         model.fit(ages, deltas)
         test_ages = np.linspace(0, 50, 100)
         _, std = model.predict(test_ages, return_std=True)
-        assert np.all(np.atleast_1d(std) >= -1e-9), (
-            f"Negative GPR std: min = {np.min(std):.6f}"
-        )
+        assert np.all(np.atleast_1d(std) >= -1e-9), f"Negative GPR std: min = {np.min(std):.6f}"
 
     def test_ucb_exceeds_mean(self, medium_data):
         """UCB(β > 0) must always be ≥ mean prediction."""
@@ -367,9 +362,7 @@ class TestTyreModelInterface:
     def test_cliff_lap_all_compounds(self, fitted_tyre_model):
         for compound in [Compound.SOFT, Compound.MEDIUM, Compound.HARD]:
             cliff = fitted_tyre_model.cliff_lap(compound)
-            assert 3 <= cliff <= 60, (
-                f"Cliff lap {cliff:.1f} out of range for {compound.name}"
-            )
+            assert 3 <= cliff <= 60, f"Cliff lap {cliff:.1f} out of range for {compound.name}"
 
     def test_cliff_ordering_soft_before_hard(self, fitted_tyre_model):
         """SOFT compound cliff must occur before HARD compound cliff."""
@@ -443,9 +436,7 @@ class TestDefaultParameters:
     def test_max_degradation_values(self):
         """Maximum degradation must be in physically realistic range [0.5, 5.0] seconds."""
         for compound, d0 in MAX_DEGRADATION.items():
-            assert 0.5 <= d0 <= 5.0, (
-                f"MAX_DEGRADATION[{compound.name}] = {d0} outside [0.5, 5.0]"
-            )
+            assert 0.5 <= d0 <= 5.0, f"MAX_DEGRADATION[{compound.name}] = {d0} outside [0.5, 5.0]"
 
     def test_soft_has_highest_max_degradation(self):
         """SOFT must have the highest maximum degradation of the dry compounds."""
