@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pitwall — live timing</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black:  #080808;
+    --carbon: #111111;
+    --panel:  #161616;
+    --panel2: #1c1c1c;
+    --border: #2a2a2a;
+    --muted:  #444;
+    --text:   #e8e8e2;
+    --soft:   #888880;
+    --red:    #e8220a;
+    --red2:   #ff4422;
+    --yellow: #f5c400;
+    --green:  #00e87a;
+    --blue:   #4a9eff;
+    --orange: #ff8c42;
+    --mono:   'DM Mono', monospace;
+    --display:'Bebas Neue', sans-serif;
+    --sans:   'DM Sans', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: var(--sans);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--carbon);
+    flex-shrink: 0;
+  }
+  .logo { font-family: var(--display); font-size: 1.3rem; letter-spacing: 0.08em; color: var(--text); text-decoration: none; }
+  .logo span { color: var(--red); }
+  .header-right { display: flex; align-items: center; gap: 1.5rem; }
+  .live-badge {
+    font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.14em;
+    text-transform: uppercase; padding: 0.3rem 0.8rem; border: 1px solid var(--muted);
+    color: var(--soft);
+    display: flex; align-items: center; gap: 0.4em;
+  }
+  .live-badge.on { color: var(--green); border-color: var(--green); background: rgba(0,232,122,0.06); }
+  .live-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .live-badge.on .dot { animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+  .back-link { font-family: var(--mono); font-size: 0.65rem; color: var(--soft); text-decoration: none; letter-spacing: 0.1em; }
+  .back-link:hover { color: var(--text); }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center;
+    padding: 0.9rem 1.5rem; background: var(--panel); border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 0.75rem; color: var(--soft);
+  }
+  .status-bar .gp-name { color: var(--text); font-family: var(--display); font-size: 1.1rem; letter-spacing: 0.04em; }
+  .status-chip { padding: 0.2rem 0.6rem; border: 1px solid var(--border); border-radius: 3px; }
+  .flag-green { color: var(--green); border-color: var(--green); }
+  .flag-yellow { color: var(--yellow); border-color: var(--yellow); }
+  .flag-safety_car, .flag-vsc { color: var(--orange); border-color: var(--orange); }
+  .flag-red { color: var(--red2); border-color: var(--red2); }
+
+  /* ── MAIN LAYOUT ── */
+  .app { flex: 1; display: flex; gap: 1px; background: var(--border); overflow: hidden; }
+  .leaderboard-col { flex: 2; min-width: 0; background: var(--black); overflow-y: auto; }
+  .strategy-col { flex: 1; min-width: 300px; max-width: 400px; background: var(--carbon); overflow-y: auto; padding: 1.25rem; }
+
+  .panel-title {
+    font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--soft); margin-bottom: 0.75rem;
+  }
+
+  table.leaderboard { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.82rem; }
+  table.leaderboard thead th {
+    text-align: left; padding: 0.6rem 0.9rem; color: var(--soft); font-size: 0.65rem;
+    letter-spacing: 0.1em; text-transform: uppercase; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--black);
+  }
+  table.leaderboard tbody tr {
+    cursor: pointer; border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  table.leaderboard tbody tr:hover { background: var(--panel); }
+  table.leaderboard tbody tr.selected { background: var(--panel2); }
+  table.leaderboard td { padding: 0.55rem 0.9rem; white-space: nowrap; }
+  .pos-num { font-family: var(--display); font-size: 1.2rem; width: 1.6em; display: inline-block; }
+  .pos-arrow-up { color: var(--green); }
+  .pos-arrow-down { color: var(--red2); }
+  .pos-arrow-same { color: var(--muted); }
+  .team-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 0.5em; }
+  .tla { font-weight: 500; color: var(--text); }
+  .tyre-pill {
+    font-size: 0.65rem; padding: 0.1rem 0.45rem; border-radius: 3px; border: 1px solid var(--muted);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .tyre-SOFT { color: var(--red2); border-color: var(--red2); }
+  .tyre-MEDIUM { color: var(--yellow); border-color: var(--yellow); }
+  .tyre-HARD { color: var(--text); border-color: var(--muted); }
+  .tyre-INTERMEDIATE, .tyre-INTER { color: var(--green); border-color: var(--green); }
+  .tyre-WET { color: var(--blue); border-color: var(--blue); }
+  .in-pit-flag { color: var(--orange); font-size: 0.65rem; margin-left: 0.4em; }
+
+  /* ── STRATEGY PANEL ── */
+  .advice-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: 1rem; margin-bottom: 1rem;
+  }
+  .advice-driver { font-family: var(--display); font-size: 1.6rem; letter-spacing: 0.03em; margin-bottom: 0.3rem; }
+  .advice-action {
+    font-family: var(--mono); font-size: 0.95rem; padding: 0.5rem 0.75rem; border-radius: 4px;
+    margin: 0.6rem 0; border: 1px solid var(--border);
+  }
+  .advice-action.stay { color: var(--green); border-color: var(--green); background: rgba(0,232,122,0.06); }
+  .advice-action.pit { color: var(--orange); border-color: var(--orange); background: rgba(255,140,66,0.08); }
+  .advice-meta { font-family: var(--mono); font-size: 0.7rem; color: var(--soft); line-height: 1.7; }
+  .advice-window-chips { display: flex; gap: 0.4em; flex-wrap: wrap; margin-top: 0.4em; }
+  .window-chip {
+    font-family: var(--mono); font-size: 0.65rem; padding: 0.15rem 0.5rem;
+    border: 1px solid var(--blue); color: var(--blue); border-radius: 3px;
+  }
+  .chart-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; }
+  .disclaimer {
+    font-family: var(--mono); font-size: 0.62rem; color: var(--muted); line-height: 1.6; margin-top: 1rem;
+  }
+
+  /* ── IDLE STATE ── */
+  .idle-state {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1rem; padding: 2rem; text-align: center;
+  }
+  .idle-state .flag { font-family: var(--display); font-size: 2.5rem; color: var(--soft); letter-spacing: 0.05em; }
+  .idle-state .next-session { font-family: var(--mono); font-size: 0.85rem; color: var(--text); line-height: 1.8; }
+  .idle-state .countdown { font-family: var(--display); font-size: 2rem; color: var(--red2); }
+
+  .hide-mobile { display: inline; }
+  @media (max-width: 760px) {
+    .app { flex-direction: column; }
+    .strategy-col { max-width: none; }
+    .hide-mobile { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">PIT<span>WALL</span></a>
+  <div class="header-right">
+    <span class="live-badge" id="live-badge"><span class="dot"></span> <span id="live-badge-text">Conectando…</span></span>
+    <a href="simulator.html" class="back-link hide-mobile">Simulator →</a>
+  </div>
+</header>
+
+<div class="status-bar" id="status-bar" style="display:none;">
+  <span class="gp-name" id="gp-name">—</span>
+  <span class="status-chip" id="session-chip">—</span>
+  <span class="status-chip" id="lap-chip">Vuelta —/—</span>
+  <span class="status-chip" id="flag-chip">—</span>
+  <span id="updated-chip">actualizado hace —</span>
+</div>
+
+<div id="idle-container" class="idle-state">
+  <div class="flag">🏁 No hay sesión en directo ahora mismo</div>
+  <div class="next-session" id="next-session-text">Cargando calendario…</div>
+</div>
+
+<div class="app" id="app-container" style="display:none;">
+  <div class="leaderboard-col">
+    <table class="leaderboard">
+      <thead>
+        <tr>
+          <th>Pos</th>
+          <th>Piloto</th>
+          <th>Gap líder</th>
+          <th>Intervalo</th>
+          <th>Neumático</th>
+          <th class="hide-mobile">Paradas</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboard-body"></tbody>
+    </table>
+  </div>
+
+  <div class="strategy-col">
+    <div class="panel-title">// Asesor de estrategia</div>
+    <div id="advice-container">
+      <div class="advice-card">
+        <div class="advice-meta">Selecciona un piloto en la tabla para ver la recomendación en vivo del modelo MDP.</div>
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:1.5rem;">// Posición por vuelta</div>
+    <div class="chart-wrap">
+      <canvas id="position-chart" height="160"></canvas>
+    </div>
+
+    <div class="disclaimer">
+      Datos no oficiales, vía el feed de timing de F1 (el mismo que usa FastF1),
+      con un retardo de unos segundos. La recomendación la calcula el mismo
+      solver MDP del <a href="simulator.html" style="color:var(--soft);">simulador</a>,
+      alimentado con la carrera real en vez de con los sliders.
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ── Config ──────────────────────────────────────────────────────────────
+// Raw GitHub content is a public, CORS-enabled, free CDN — this is the
+// entire "backend" this page talks to. See live/publish.py for how that
+// branch gets updated (git commit --amend + push, no server involved).
+const LIVE_DATA_URL = "https://raw.githubusercontent.com/claudialbombin/pitwall-simulator/live-data/live.json";
+const SCHEDULE_URL = "data/schedule.json";
+const POLL_INTERVAL_MS = 5000;
+const STALE_THRESHOLD_MS = 2 * 60 * 1000; // no update in 2 min -> treat as not live
+
+const TRACK_STATUS_LABEL_ES = {
+  green: "PISTA VERDE",
+  yellow: "BANDERA AMARILLA",
+  safety_car: "SAFETY CAR",
+  vsc: "VSC",
+  vsc_ending: "VSC — FINALIZANDO",
+  red: "BANDERA ROJA",
+  unknown: "—",
+};
+
+let schedule = [];
+let previousPositions = {};   // driver number -> last seen position (for the up/down arrow)
+let positionHistory = {};     // driver number -> [{lap, position}, ...] built up while this tab is open
+let selectedDriver = null;
+let lastDriversByNumber = {};
+let chart = null;
+
+// ── Schedule (idle state) ──────────────────────────────────────────────
+async function loadSchedule() {
+  try {
+    const res = await fetch(SCHEDULE_URL, { cache: "no-store" });
+    if (res.ok) schedule = await res.json();
+  } catch (e) {
+    console.warn("Could not load schedule.json", e);
+  }
+}
+
+function renderIdleState() {
+  const now = new Date();
+  const upcoming = schedule
+    .map(s => ({ ...s, startDate: new Date(s.start) }))
+    .filter(s => s.startDate > now)
+    .sort((a, b) => a.startDate - b.startDate);
+
+  const el = document.getElementById("next-session-text");
+  if (upcoming.length === 0) {
+    el.textContent = "No hay más sesiones programadas en el calendario cargado.";
+    return;
+  }
+  const next = upcoming[0];
+  const diffMs = next.startDate - now;
+  const h = Math.floor(diffMs / 3_600_000);
+  const m = Math.floor((diffMs % 3_600_000) / 60_000);
+  const localStr = next.startDate.toLocaleString(undefined, {
+    weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+  });
+  el.innerHTML = `Próxima sesión: <strong>${next.display_name} — ${next.session}</strong><br>` +
+    `${localStr} (tu hora local)<br><span class="countdown">en ${h}h ${m}m</span>`;
+}
+
+// ── Live data ───────────────────────────────────────────────────────────
+async function pollLive() {
+  try {
+    const res = await fetch(`${LIVE_DATA_URL}?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    const age = Date.now() - new Date(data.generated_at).getTime();
+    if (!data.live || age > STALE_THRESHOLD_MS) {
+      setLiveBadge(false);
+      showIdle();
+      return;
+    }
+    setLiveBadge(true);
+    showDashboard();
+    renderDashboard(data);
+  } catch (e) {
+    setLiveBadge(false);
+    showIdle();
+  }
+}
+
+function setLiveBadge(isLive) {
+  const badge = document.getElementById("live-badge");
+  const text = document.getElementById("live-badge-text");
+  badge.classList.toggle("on", isLive);
+  text.textContent = isLive ? "EN DIRECTO" : "Sin sesión en directo";
+}
+
+function showIdle() {
+  document.getElementById("idle-container").style.display = "flex";
+  document.getElementById("app-container").style.display = "none";
+  document.getElementById("status-bar").style.display = "none";
+  renderIdleState();
+}
+
+function showDashboard() {
+  document.getElementById("idle-container").style.display = "none";
+  document.getElementById("app-container").style.display = "flex";
+  document.getElementById("status-bar").style.display = "flex";
+}
+
+function renderDashboard(data) {
+  document.getElementById("gp-name").textContent = data.display_name || data.circuit;
+  document.getElementById("session-chip").textContent = data.session_type || "—";
+  document.getElementById("lap-chip").textContent = `Vuelta ${data.current_lap || "—"}/${data.total_laps || "—"}`;
+
+  const flagChip = document.getElementById("flag-chip");
+  const label = data.track_status_label || "unknown";
+  flagChip.textContent = TRACK_STATUS_LABEL_ES[label] || label;
+  flagChip.className = "status-chip flag-" + label;
+
+  const ageS = Math.round((Date.now() - new Date(data.generated_at).getTime()) / 1000);
+  document.getElementById("updated-chip").textContent = `actualizado hace ${ageS}s`;
+
+  lastDriversByNumber = {};
+  for (const d of data.drivers) lastDriversByNumber[d.number] = d;
+
+  renderLeaderboard(data.drivers, data.current_lap);
+
+  if (selectedDriver && lastDriversByNumber[selectedDriver]) {
+    renderAdvice(lastDriversByNumber[selectedDriver]);
+  }
+}
+
+function fmtGap(v) {
+  if (v === null || v === undefined) return "LÍDER";
+  return "+" + v.toFixed(3);
+}
+
+function renderLeaderboard(drivers, currentLap) {
+  const body = document.getElementById("leaderboard-body");
+  body.innerHTML = "";
+
+  for (const d of drivers) {
+    const prevPos = previousPositions[d.number];
+    let arrow = '<span class="pos-arrow-same">▬</span>';
+    if (prevPos !== undefined && prevPos !== d.position) {
+      arrow = d.position < prevPos
+        ? '<span class="pos-arrow-up">▲</span>'
+        : '<span class="pos-arrow-down">▼</span>';
+    }
+    previousPositions[d.number] = d.position;
+
+    if (!positionHistory[d.number]) positionHistory[d.number] = [];
+    const hist = positionHistory[d.number];
+    if (hist.length === 0 || hist[hist.length - 1].lap !== currentLap) {
+      hist.push({ lap: currentLap, position: d.position });
+      if (hist.length > 200) hist.shift();
+    }
+
+    const tr = document.createElement("tr");
+    tr.className = d.number === selectedDriver ? "selected" : "";
+    tr.onclick = () => { selectedDriver = d.number; renderLeaderboard(drivers, currentLap); renderAdvice(d); };
+    tr.innerHTML = `
+      <td><span class="pos-num">${d.position}</span> ${arrow}</td>
+      <td>
+        <span class="team-dot" style="background:#${d.team_colour || "888880"}"></span>
+        <span class="tla">${d.tla}</span>
+        ${d.in_pit ? '<span class="in-pit-flag">PIT</span>' : ""}
+      </td>
+      <td>${fmtGap(d.gap_to_leader_s)}</td>
+      <td>${d.interval_ahead_s !== null && d.interval_ahead_s !== undefined ? "+" + d.interval_ahead_s.toFixed(3) : "—"}</td>
+      <td><span class="tyre-pill tyre-${d.compound}">${d.compound}</span> ${d.tyre_age}L</td>
+      <td class="hide-mobile">${d.stops}</td>
+    `;
+    body.appendChild(tr);
+  }
+
+  updateChart();
+}
+
+function renderAdvice(driver) {
+  const container = document.getElementById("advice-container");
+  const advice = driver.advice;
+  if (!advice) {
+    container.innerHTML = `<div class="advice-card"><div class="advice-meta">Sin recomendación disponible todavía para ${driver.tla}.</div></div>`;
+    return;
+  }
+  const isPit = advice.action !== "STAY_OUT";
+  const chips = (advice.pit_window_laps || [])
+    .map(l => `<span class="window-chip">Vuelta ${l}</span>`).join("");
+
+  container.innerHTML = `
+    <div class="advice-card">
+      <div class="advice-driver">${driver.tla}</div>
+      <div class="advice-meta">P${driver.position} · ${driver.compound} (${driver.tyre_age} vueltas) · ${driver.stops} parada(s)</div>
+      <div class="advice-action ${isPit ? 'pit' : 'stay'}">${advice.action_label}</div>
+      <div class="advice-meta">
+        Pérdida de tiempo esperada hasta el final: ~${Math.abs(advice.expected_loss_s).toFixed(1)}s<br>
+        ${chips ? "Ventana de parada sugerida:" : ""}
+      </div>
+      <div class="advice-window-chips">${chips}</div>
+    </div>
+  `;
+}
+
+function updateChart() {
+  if (!selectedDriver || !positionHistory[selectedDriver]) return;
+  const hist = positionHistory[selectedDriver];
+  const ctx = document.getElementById("position-chart");
+
+  const labels = hist.map(h => h.lap);
+  const values = hist.map(h => h.position);
+
+  if (!chart) {
+    chart = new Chart(ctx, {
+      type: "line",
+      data: { labels, datasets: [{ label: "Posición", data: values, borderColor: "#00e87a", tension: 0.2, pointRadius: 2 }] },
+      options: {
+        responsive: true,
+        scales: {
+          y: { reverse: true, min: 1, max: 20, ticks: { stepSize: 1, color: "#888880" }, grid: { color: "#2a2a2a" } },
+          x: { ticks: { color: "#888880" }, grid: { color: "#2a2a2a" } },
+        },
+        plugins: { legend: { display: false } },
+      },
+    });
+  } else {
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = values;
+    chart.update("none");
+  }
+}
+
+// ── Boot ────────────────────────────────────────────────────────────────
+(async function init() {
+  await loadSchedule();
+  showIdle();
+  await pollLive();
+  setInterval(pollLive, POLL_INTERVAL_MS);
+  setInterval(() => { if (document.getElementById("idle-container").style.display !== "none") renderIdleState(); }, 1000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+# .github/workflows/live-scheduler.yml
+#
+# The free "cron" half of live timing: every 5 minutes (the shortest
+# interval GitHub Actions schedules allow), check the hand-maintained
+# calendar in live/schedule.py, and if a session is live right now,
+# dispatch live-listener.yml — which does the actual work.
+#
+# This file needs no dependencies beyond the stdlib (live/schedule.py has
+# none), so it's a fast, cheap job even though it runs every 5 minutes,
+# 24/7, all season — well inside the unlimited free Actions minutes public
+# repos get.
+#
+# Runs ONLY happen on the default branch once this is merged: GitHub does
+# not fire `schedule` triggers from other branches.
+
+name: Live timing scheduler
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}  # manual "check right now" button in the Actions tab
+
+permissions:
+  actions: write   # to list/dispatch live-listener.yml
+  contents: read
+
+concurrency:
+  group: live-scheduler
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check calendar and dispatch listener if live
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check live/schedule.py (no dependencies needed)
+        id: check
+        run: |
+          OUTPUT=$(python3 live/schedule.py)
+          echo "$OUTPUT"
+          echo "output=$OUTPUT" >> "$GITHUB_OUTPUT"
+          if [[ "$OUTPUT" == LIVE* ]]; then
+            echo "is_live=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_live=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dispatch live-listener.yml if not already running
+        if: steps.check.outputs.is_live == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUNNING=$(gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow=live-listener.yml \
+            --json status \
+            --jq '[.[] | select(.status=="in_progress" or .status=="queued")] | length')
+
+          if [[ "$RUNNING" -gt 0 ]]; then
+            echo "live-listener.yml is already running ($RUNNING) — not dispatching again."
+          else
+            echo "Dispatching live-listener.yml..."
+            gh workflow run live-listener.yml --repo "$GITHUB_REPOSITORY"
+          fi

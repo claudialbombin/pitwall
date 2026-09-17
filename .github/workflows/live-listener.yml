@@ -1,0 +1,107 @@
+# .github/workflows/live-listener.yml
+#
+# Runs the actual live timing listener (live/run.py) for the duration of
+# one F1 session, and publishes live.json to the `live-data` branch as it
+# goes — see live/publish.py for why that's the whole "backend" this
+# feature needs.
+#
+# Triggered two ways:
+#   - Automatically, by live-scheduler.yml, whenever the calendar in
+#     live/schedule.py says a session is live. No inputs given — the
+#     listener figures out circuit/laps/session itself from the calendar.
+#   - Manually, from the Actions tab, optionally with --circuit/--total-laps
+#     to pre-warm the strategy cache ahead of a weekend (prewarm_only) or
+#     to test the pipeline outside of a real session window.
+#
+# `contents: write` is the only non-default permission this needs: it lets
+# the built-in GITHUB_TOKEN push the live-data branch — no secrets, no
+# personal access token, nothing to configure or pay for.
+
+name: Live timing listener
+
+on:
+  workflow_dispatch:
+    inputs:
+      circuit:
+        description: "Force a circuit slug (leave empty to use the calendar)"
+        required: false
+        default: ""
+      total_laps:
+        description: "Force total laps (used together with circuit)"
+        required: false
+        default: ""
+      display_name:
+        description: "Optional display name override"
+        required: false
+        default: ""
+      session:
+        description: "Optional session code override (FP1/FP2/FP3/Q/R/...)"
+        required: false
+        default: ""
+      prewarm_only:
+        description: "Only solve + cache the strategy model, don't connect to the feed"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-listener
+  cancel-in-progress: false
+
+jobs:
+  listen:
+    name: Listen to the live feed and publish live.json
+    runs-on: ubuntu-latest
+    timeout-minutes: 240  # hard cap; live/run.py has its own internal 4h safety cutoff too
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # live/publish.py needs to fetch/create the live-data branch
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies (core + live extras only — no dev/notebook tools)
+        run: |
+          pip install -e "."
+          pip install -r requirements-live.txt
+
+      - name: Restore strategy model cache
+        uses: actions/cache@v4
+        with:
+          path: results/live_policy_cache
+          key: live-policy-cache-${{ github.run_id }}
+          restore-keys: |
+            live-policy-cache-
+
+      - name: Configure git identity for the live-data branch commits
+        run: |
+          git config user.name "pitwall-live-bot"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Run the live listener
+        run: |
+          ARGS=""
+          if [[ -n "${{ inputs.circuit }}" ]]; then
+            ARGS="$ARGS --circuit ${{ inputs.circuit }}"
+          fi
+          if [[ -n "${{ inputs.total_laps }}" ]]; then
+            ARGS="$ARGS --total-laps ${{ inputs.total_laps }}"
+          fi
+          if [[ -n "${{ inputs.display_name }}" ]]; then
+            ARGS="$ARGS --display-name \"${{ inputs.display_name }}\""
+          fi
+          if [[ -n "${{ inputs.session }}" ]]; then
+            ARGS="$ARGS --session ${{ inputs.session }}"
+          fi
+          if [[ "${{ inputs.prewarm_only }}" == "true" ]]; then
+            ARGS="$ARGS --prewarm-only"
+          fi
+          echo "Running: python -m live.run $ARGS"
+          eval "python -m live.run $ARGS"

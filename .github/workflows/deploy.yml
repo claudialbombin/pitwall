@@ -147,6 +147,31 @@ jobs:
       - name: Set up Pages
         uses: actions/configure-pages@v5
 
+      - name: Export the live-timing calendar for the frontend
+        run: |
+          # Single-sources the season calendar: live/schedule.py is the one
+          # place session times are maintained; this just serialises it so
+          # web/live.html can show "next session in ..." without needing
+          # its own copy. Zero extra dependencies (schedule.py is stdlib-only).
+          python3 - <<'PYEOF'
+          import json
+          from live.schedule import SEASON_2026
+
+          out = [
+              {
+                  "circuit": w.circuit,
+                  "display_name": w.display_name,
+                  "session": w.session,
+                  "start": w.start.isoformat(),
+                  "total_laps": w.total_laps,
+              }
+              for w in SEASON_2026
+          ]
+          with open("results/schedule.json", "w") as f:
+              json.dump(out, f, indent=2)
+          print(f"Exported {len(out)} session windows to results/schedule.json")
+          PYEOF
+
       - name: Assemble site directory
         run: |
           mkdir -p _site
@@ -155,6 +180,7 @@ jobs:
           # Make results available to the JS frontend
           mkdir -p _site/data
           cp results/optimal_policies.json _site/data/
+          cp results/schedule.json         _site/data/
           cp results/backtest_summary.csv  _site/data/ 2>/dev/null || echo "No backtest CSV yet"
           # Add .nojekyll so GitHub Pages serves files starting with _
           touch _site/.nojekyll

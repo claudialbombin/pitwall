@@ -46,15 +46,15 @@ jobs:
           cache: pip
 
       - name: Install lint dependencies
-        run: pip install ruff mypy numpy scipy pandas scikit-learn
+        run: pip install ruff mypy numpy scipy pandas scikit-learn websockets requests
 
       - name: ruff — check style and imports
         run: |
-          ruff check core/ tests/ data/
-          ruff format --check core/ tests/ data/
+          ruff check core/ tests/ data/ live/
+          ruff format --check core/ tests/ data/ live/
 
       - name: mypy — type checking (core only)
-        run: mypy core/ --ignore-missing-imports --no-error-summary
+        run: mypy core/ live/ --ignore-missing-imports --no-error-summary
         continue-on-error: true   # non-blocking until we reach full coverage
 
 
@@ -78,12 +78,15 @@ jobs:
           cache: pip
 
       - name: Install package and dev dependencies
-        run: pip install -e ".[dev]"
+        run: |
+          pip install -e ".[dev]"
+          pip install -r requirements-live.txt
 
       - name: Run pytest with coverage
         run: |
           pytest tests/ \
             --cov=core \
+            --cov=live \
             --cov-report=term-missing \
             --cov-report=xml:coverage.xml \
             -v \
@@ -123,6 +126,7 @@ jobs:
         run: |
           pip install dist/*.whl
           python -c "from core.mdp import State, Compound; print('Import OK')"
+          python -c "from live.schedule import SEASON_2026; print('live import OK')"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

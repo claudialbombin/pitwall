@@ -1,0 +1,7 @@
+# pitwall — live timing dependencies (optional)
+# Install with: pip install -r requirements-live.txt
+# Only needed to run the live timing listener (live/run.py) — the offline
+# solver, notebooks, tests and static site have no dependency on this file.
+
+websockets>=12.0   # F1 live timing SignalR feed
+requests>=2.31     # negotiate handshake for the same feed

@@ -30,6 +30,10 @@ dev = [
     "jupytext>=1.16",       # .py ↔ .ipynb conversion
     "ipykernel>=6.29",
 ]
+live = [
+    "websockets>=12.0",    # F1 live timing SignalR feed (see live/signalr_client.py)
+    "requests>=2.31",      # negotiate handshake for the same feed
+]
 
 [project.scripts]
 pitwall-fetch = "data.fetch_data:run_pipeline"
@@ -40,13 +44,13 @@ Repository = "https://github.com/claudialbombin/pitwall"
 
 # ── Hatch build ──────────────────────────────────────────────────────────────
 [tool.hatch.build.targets.wheel]
-packages = ["core", "data"]
+packages = ["core", "data", "live"]
 
 # ── Ruff (linter + formatter) ─────────────────────────────────────────────────
 [tool.ruff]
 target-version = "py310"
 line-length    = 100
-src            = ["core", "data", "tests"]
+src            = ["core", "data", "tests", "live"]
 
 [tool.ruff.lint]
 select = [
@@ -114,7 +118,7 @@ filterwarnings = [
 
 # ── Coverage ──────────────────────────────────────────────────────────────────
 [tool.coverage.run]
-source   = ["core"]
+source   = ["core", "live"]
 omit     = ["tests/*", "notebooks/*", "data/fetch_data.py"]
 
 [tool.coverage.report]
