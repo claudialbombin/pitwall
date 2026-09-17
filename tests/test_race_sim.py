@@ -39,17 +39,16 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "core"))
 
+from mdp import Compound
 from race_sim import (
-    RaceSimulator,
-    RaceResult,
-    CircuitConfig,
     CIRCUITS,
+    CircuitConfig,
+    RaceResult,
+    RaceSimulator,
     _AntitheticsRNG,
 )
-from tyre_model import TyreModel
 from safety_car import SafetyCarModel
-from mdp import Compound
-
+from tyre_model import TyreModel
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -121,9 +120,7 @@ class TestCircuitConfig:
     def test_all_circuits_have_realistic_base_lap_time(self):
         """Base lap times must be between 60s (1 minute) and 150s (2.5 minutes)."""
         for name, cfg in CIRCUITS.items():
-            assert 60 <= cfg.base_lap_time <= 150, (
-                f"{name}: base_lap_time={cfg.base_lap_time}"
-            )
+            assert 60 <= cfg.base_lap_time <= 150, f"{name}: base_lap_time={cfg.base_lap_time}"
 
     def test_monaco_has_longest_pit_delta(self):
         """Monaco pit lane is the longest — must exceed other common circuits."""
@@ -205,9 +202,7 @@ class TestSingleRaceStructure:
         hi = silverstone.base_lap_time * 2.1
         for r in small_results:
             for i, lt in enumerate(r.lap_times):
-                assert lo <= lt <= hi, (
-                    f"Lap {i + 1} time {lt:.2f}s outside [{lo:.1f}, {hi:.1f}]"
-                )
+                assert lo <= lt <= hi, f"Lap {i + 1} time {lt:.2f}s outside [{lo:.1f}, {hi:.1f}]"
 
     def test_compounds_used_consistent_with_pit_count(self, small_results):
         """
@@ -235,12 +230,8 @@ class TestReproducibility:
     def test_same_seed_same_results(self, silverstone, tyre_model, sc_model):
         """Identical seeds must produce identical race times."""
         sim = RaceSimulator(silverstone, tyre_model, sc_model, policy=None)
-        results_a = sim.run(
-            n_simulations=20, seed=42, use_antithetic=False, verbose=False
-        )
-        results_b = sim.run(
-            n_simulations=20, seed=42, use_antithetic=False, verbose=False
-        )
+        results_a = sim.run(n_simulations=20, seed=42, use_antithetic=False, verbose=False)
+        results_b = sim.run(n_simulations=20, seed=42, use_antithetic=False, verbose=False)
         times_a = [r.total_time for r in results_a]
         times_b = [r.total_time for r in results_b]
         assert times_a == times_b, "Different results with same seed"
@@ -248,17 +239,11 @@ class TestReproducibility:
     def test_different_seeds_different_results(self, silverstone, tyre_model, sc_model):
         """Different seeds must (almost certainly) produce different results."""
         sim = RaceSimulator(silverstone, tyre_model, sc_model, policy=None)
-        results_a = sim.run(
-            n_simulations=20, seed=1, use_antithetic=False, verbose=False
-        )
-        results_b = sim.run(
-            n_simulations=20, seed=2, use_antithetic=False, verbose=False
-        )
+        results_a = sim.run(n_simulations=20, seed=1, use_antithetic=False, verbose=False)
+        results_b = sim.run(n_simulations=20, seed=2, use_antithetic=False, verbose=False)
         times_a = [r.total_time for r in results_a]
         times_b = [r.total_time for r in results_b]
-        assert times_a != times_b, (
-            "Same results with different seeds (extremely unlikely)"
-        )
+        assert times_a != times_b, "Same results with different seeds (extremely unlikely)"
 
 
 # ---------------------------------------------------------------------------
@@ -270,9 +255,7 @@ class TestStatisticalProperties:
     @pytest.fixture
     def large_results(self, simulator):
         """500 simulations — enough for reliable statistical tests."""
-        return simulator.run(
-            n_simulations=500, seed=99, use_antithetic=False, verbose=False
-        )
+        return simulator.run(n_simulations=500, seed=99, use_antithetic=False, verbose=False)
 
     def test_mean_is_finite(self, large_results):
         times = [r.total_time for r in large_results]
@@ -300,9 +283,7 @@ class TestStatisticalProperties:
         sc_off = SafetyCarModel(circuit="silverstone", total_laps=52)
         # Manually set p_deploy to 0 to disable SC
         for i in range(52):
-            sc_off._lap_probs[i] = sc_off._lap_probs[i].__class__(
-                alpha=0.0001, beta=100.0
-            )
+            sc_off._lap_probs[i] = sc_off._lap_probs[i].__class__(alpha=0.0001, beta=100.0)
 
         sim_on = RaceSimulator(silverstone, tyre_model, sc_on, policy=None)
         sim_off = RaceSimulator(silverstone, tyre_model, sc_off, policy=None)
@@ -391,9 +372,7 @@ class TestAntitheticsRNG:
 
         # Bootstrap variance of the sample mean
         def bootstrap_var_of_mean(times, n_boot=200):
-            means = [
-                np.mean(np.random.choice(times, len(times))) for _ in range(n_boot)
-            ]
+            means = [np.mean(np.random.choice(times, len(times))) for _ in range(n_boot)]
             return np.var(means)
 
         times_anti = np.array([r.total_time for r in results_anti])
@@ -448,25 +427,19 @@ class TestMultiCircuit:
 class TestEdgeCases:
     def test_single_simulation(self, simulator):
         """Running exactly 1 simulation must not crash."""
-        results = simulator.run(
-            n_simulations=1, seed=0, use_antithetic=False, verbose=False
-        )
+        results = simulator.run(n_simulations=1, seed=0, use_antithetic=False, verbose=False)
         assert len(results) == 1
 
     def test_starting_position_1(self, silverstone, tyre_model, sc_model):
         """Starting from pole position (P1) must not crash."""
         sim = RaceSimulator(silverstone, tyre_model, sc_model, policy=None)
-        results = sim.run(
-            10, starting_position=1, seed=0, use_antithetic=False, verbose=False
-        )
+        results = sim.run(10, starting_position=1, seed=0, use_antithetic=False, verbose=False)
         assert len(results) == 10
 
     def test_starting_position_20(self, silverstone, tyre_model, sc_model):
         """Starting from last (P20) must not crash."""
         sim = RaceSimulator(silverstone, tyre_model, sc_model, policy=None)
-        results = sim.run(
-            10, starting_position=20, seed=0, use_antithetic=False, verbose=False
-        )
+        results = sim.run(10, starting_position=20, seed=0, use_antithetic=False, verbose=False)
         assert len(results) == 10
 
     def test_hard_compound_start(self, silverstone, tyre_model, sc_model):

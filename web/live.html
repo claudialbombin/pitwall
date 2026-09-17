@@ -34,6 +34,7 @@
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='24' font-size='26'>%F0%9F%8F%8E%EF%B8%8F</text></svg>") 4 16, auto;
   }
 
   /* ── HEADER ── */
@@ -92,7 +93,8 @@
     position: sticky; top: 0; background: var(--black);
   }
   table.leaderboard tbody tr {
-    cursor: pointer; border-bottom: 1px solid var(--border);
+    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='24' font-size='26'>%F0%9F%8F%8E%EF%B8%8F</text></svg>") 4 16, pointer;
+    border-bottom: 1px solid var(--border);
     transition: background 0.15s;
   }
   table.leaderboard tbody tr:hover { background: var(--panel); }
@@ -271,11 +273,12 @@ function renderIdleState() {
   const diffMs = next.startDate - now;
   const h = Math.floor(diffMs / 3_600_000);
   const m = Math.floor((diffMs % 3_600_000) / 60_000);
+  const s = Math.floor((diffMs % 60_000) / 1000);
   const localStr = next.startDate.toLocaleString(undefined, {
     weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
   });
   el.innerHTML = `Próxima sesión: <strong>${next.display_name} — ${next.session}</strong><br>` +
-    `${localStr} (tu hora local)<br><span class="countdown">en ${h}h ${m}m</span>`;
+    `${localStr} (tu hora local)<br><span class="countdown">en ${h}h ${m}m ${s}s</span>`;
 }
 
 // ── Live data ───────────────────────────────────────────────────────────

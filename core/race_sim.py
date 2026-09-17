@@ -82,7 +82,6 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -95,9 +94,9 @@ try:
         action_to_compound,
         discretise_gap,
     )
-    from .tyre_model import TyreModel
     from .safety_car import SafetyCarModel
     from .solver import PolicyTable
+    from .tyre_model import TyreModel
 except ImportError:
     from mdp import (
         Action,
@@ -106,9 +105,9 @@ except ImportError:
         action_to_compound,
         discretise_gap,
     )
-    from tyre_model import TyreModel
     from safety_car import SafetyCarModel
     from solver import PolicyTable
+    from tyre_model import TyreModel
 
 
 # ---------------------------------------------------------------------------
@@ -132,15 +131,9 @@ CIRCUITS: dict[str, CircuitConfig] = {
     "silverstone": CircuitConfig(
         name="silverstone", total_laps=52, pit_lane_delta=18.9, base_lap_time=86.5
     ),
-    "monza": CircuitConfig(
-        name="monza", total_laps=53, pit_lane_delta=23.4, base_lap_time=80.9
-    ),
-    "monaco": CircuitConfig(
-        name="monaco", total_laps=78, pit_lane_delta=22.0, base_lap_time=72.9
-    ),
-    "spa": CircuitConfig(
-        name="spa", total_laps=44, pit_lane_delta=18.2, base_lap_time=103.1
-    ),
+    "monza": CircuitConfig(name="monza", total_laps=53, pit_lane_delta=23.4, base_lap_time=80.9),
+    "monaco": CircuitConfig(name="monaco", total_laps=78, pit_lane_delta=22.0, base_lap_time=72.9),
+    "spa": CircuitConfig(name="spa", total_laps=44, pit_lane_delta=18.2, base_lap_time=103.1),
 }
 
 
@@ -169,9 +162,7 @@ class CarState:
     lap_times: list[float] = field(default_factory=list)
     deg_history: list[float] = field(default_factory=list)
 
-    def to_mdp_state(
-        self, gap_ahead: float, gap_behind: float, sc_active: bool
-    ) -> State:
+    def to_mdp_state(self, gap_ahead: float, gap_behind: float, sc_active: bool) -> State:
         """Convert to MDP State for policy lookup."""
         return State(
             lap=self.lap,
@@ -227,7 +218,7 @@ class RaceSimulator:
     circuit: CircuitConfig
     tyre_model: TyreModel
     sc_model: SafetyCarModel
-    policy: Optional[PolicyTable] = None  # None = use baseline heuristic
+    policy: PolicyTable | None = None  # None = use baseline heuristic
 
     def run(
         self,
@@ -261,9 +252,7 @@ class RaceSimulator:
         for i in range(n_runs):
             # Primary sample
             child_rng = np.random.default_rng(rng.integers(0, 2**31))
-            result = self._simulate_race(
-                child_rng, starting_position, starting_compound
-            )
+            result = self._simulate_race(child_rng, starting_position, starting_compound)
             results.append(result)
 
             if use_antithetic:
@@ -279,16 +268,10 @@ class RaceSimulator:
             if verbose and (i + 1) % 1000 == 0:
                 elapsed = time.perf_counter() - t0
                 pct = 100 * (i + 1) / n_runs
-                print(
-                    f"  {pct:.0f}% | {i + 1:,}/{n_runs:,} simulations | "
-                    f"{elapsed:.1f}s elapsed"
-                )
+                print(f"  {pct:.0f}% | {i + 1:,}/{n_runs:,} simulations | {elapsed:.1f}s elapsed")
 
         if verbose:
-            print(
-                f"Simulation complete: {len(results):,} runs in "
-                f"{time.perf_counter() - t0:.2f}s"
-            )
+            print(f"Simulation complete: {len(results):,} runs in {time.perf_counter() - t0:.2f}s")
 
         return results
 
@@ -479,8 +462,8 @@ class RaceSimulator:
         """
         try:
             import fastf1  # type: ignore[import]
-        except ImportError:
-            raise ImportError("fastf1 required for backtest. pip install fastf1")
+        except ImportError as exc:
+            raise ImportError("fastf1 required for backtest. pip install fastf1") from exc
 
         fastf1.Cache.enable_cache("data/raw")
         records = []
@@ -491,17 +474,13 @@ class RaceSimulator:
 
         for driver in laps["Driver"].unique():
             driver_laps = laps[laps["Driver"] == driver].sort_values("LapNumber")
-            pit_laps_actual = driver_laps[driver_laps["PitOutTime"].notna()][
-                "LapNumber"
-            ].tolist()
+            pit_laps_actual = driver_laps[driver_laps["PitOutTime"].notna()]["LapNumber"].tolist()
 
             if not pit_laps_actual:
                 continue
 
             # Our recommendation: first pit lap from MDP policy at standard state
-            our_first_pit = self._mdp_recommended_pit_lap(
-                starting_compound=Compound.MEDIUM
-            )
+            our_first_pit = self._mdp_recommended_pit_lap(starting_compound=Compound.MEDIUM)
 
             time_delta = self._estimate_time_delta(
                 our_pit_lap=our_first_pit,
