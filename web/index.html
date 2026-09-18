@@ -22,6 +22,7 @@
     --mono:    'DM Mono', monospace;
     --display: 'Bebas Neue', sans-serif;
     --sans:    'DM Sans', sans-serif;
+    --car-cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='24' font-size='26'>%F0%9F%8F%8E%EF%B8%8F</text></svg>") 4 16;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -33,7 +34,7 @@
     color: var(--text);
     font-family: var(--sans);
     overflow-x: hidden;
-    cursor: crosshair;
+    cursor: var(--car-cursor), crosshair;
   }
 
   /* ── NOISE OVERLAY ── */
@@ -220,7 +221,7 @@
     text-decoration: none;
     transition: background 0.2s, transform 0.1s;
     border: none;
-    cursor: pointer;
+    cursor: var(--car-cursor), pointer;
   }
   .btn-primary:hover { background: var(--red2); transform: translateY(-1px); }
 

@@ -203,11 +203,23 @@ class WeibullTyreModel:
 
     compound: Compound
     k: float = field(default=2.5)  # shape: >1 for accelerating wear
-    lam: float = field(default=25.0)  # scale: characteristic life (laps)
+    lam: float = field(default=0.0)  # scale: characteristic life (laps)
     d0: float = field(default=0.0)  # max degradation (s/lap)
     _fitted: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self) -> None:
+        if self.lam == 0.0:
+            # Default so that cliff_lap() lands on the empirical median cliff
+            # lap for this compound (see CLIFF_LAP_MEDIAN) instead of a single
+            # constant for all compounds — SOFT tyres hit the cliff much
+            # earlier than HARD. cliff_lap() is t_cliff = lam * ((k-1)/k)^(1/k),
+            # so lam has to be the *inverse* of that scaling, not the raw
+            # target lap count, or the resulting cliff undershoots the target.
+            target_cliff = float(CLIFF_LAP_MEDIAN[self.compound])
+            if self.k > 1.0:
+                self.lam = target_cliff / ((self.k - 1.0) / self.k) ** (1.0 / self.k)
+            else:
+                self.lam = target_cliff
         if self.d0 == 0.0:
             self.d0 = MAX_DEGRADATION[self.compound]
 

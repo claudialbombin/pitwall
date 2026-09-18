@@ -585,11 +585,16 @@ class TestPitLaneDelta:
         for circuit, delta in PIT_LANE_DELTA.items():
             assert delta > 0, f"Non-positive pit delta for {circuit}: {delta}"
 
-    def test_monaco_longer_than_monza(self):
-        """Monaco pit lane is longer than Monza's — must reflect in the model."""
-        assert PIT_LANE_DELTA["monaco"] > PIT_LANE_DELTA["monza"], (
-            "Monaco pit delta should exceed Monza. "
-            f"monaco={PIT_LANE_DELTA['monaco']}, monza={PIT_LANE_DELTA['monza']}"
+    def test_monza_longer_than_monaco(self):
+        """
+        Monza's pit lane loss is one of the longest of the season (~24.3s
+        per F1's own circuit facts), while Monaco's is one of the shortest
+        (~19.4s) despite its reputation for being a tight, technical pit
+        entry — the lap itself is so slow that the relative loss is small.
+        """
+        assert PIT_LANE_DELTA["monza"] > PIT_LANE_DELTA["monaco"], (
+            "Monza pit delta should exceed Monaco's. "
+            f"monza={PIT_LANE_DELTA['monza']}, monaco={PIT_LANE_DELTA['monaco']}"
         )
 
     def test_default_delta_is_reasonable(self):
