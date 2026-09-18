@@ -33,7 +33,7 @@
   ]]></style>
 </defs>
 
-<rect width="600" height="160" fill="#080808"/>
+<rect width="600" height="160" fill="#ffffff"/>
 <rect class="tarmac" x="0" y="128" width="600" height="32"/>
 <line x1="0" y1="128" x2="600" y2="128" stroke="#2a2a2a" stroke-width="1"/>
 
@@ -52,13 +52,13 @@
 </g>
 
 <g class="streak" style="animation-delay:0s">
-  <rect x="0" y="118" width="70" height="3" fill="#e8e8e2" opacity="0.5"/>
+  <rect x="0" y="118" width="70" height="3" fill="#999990" opacity="0.7"/>
 </g>
 <g class="streak" style="animation-delay:-0.9s">
-  <rect x="0" y="108" width="50" height="2" fill="#e8e8e2" opacity="0.4"/>
+  <rect x="0" y="108" width="50" height="2" fill="#999990" opacity="0.55"/>
 </g>
 <g class="streak" style="animation-delay:-1.8s">
-  <rect x="0" y="122" width="40" height="2" fill="#e8e8e2" opacity="0.35"/>
+  <rect x="0" y="122" width="40" height="2" fill="#999990" opacity="0.45"/>
 </g>
 
 <g id="carWrap">

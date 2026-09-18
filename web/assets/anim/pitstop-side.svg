@@ -3,7 +3,7 @@
 <defs>
   <style><![CDATA[
     :root{ --dur: 6s; }
-    .bg{ fill:#080808; }
+    .bg{ fill:#ffffff; }
     .tarmac{ fill:#111114; }
     .box-line{ stroke:#f5c400; stroke-width:2; opacity:0.55; }
     .body-fill{ fill:#e8220a; }
@@ -186,9 +186,9 @@
 
 <g class="crew">
   <ellipse cx="270" cy="176" rx="7" ry="11" fill="#4a9eff"/>
-  <circle cx="270" cy="162" r="5" fill="#e8e8e2"/>
+  <circle cx="270" cy="162" r="5" fill="#e8e8e2" stroke="#2a2a2a" stroke-width="1"/>
   <ellipse cx="332" cy="176" rx="7" ry="11" fill="#4a9eff"/>
-  <circle cx="332" cy="162" r="5" fill="#e8e8e2"/>
+  <circle cx="332" cy="162" r="5" fill="#e8e8e2" stroke="#2a2a2a" stroke-width="1"/>
 </g>
 
 <text id="timer" x="240" y="30" text-anchor="middle" font-size="22" fill="#00e87a" font-weight="700">2.31s</text>

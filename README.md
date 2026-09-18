@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="web/assets/anim/pitstop-side.svg" width="440" alt="Animated F1 pit stop, side view — jack, wheel gun, wheel change, launch">
-</p>
-
 <h1 align="center">PITWALL</h1>
 <p align="center"><b>When do you pit? A stochastic answer.</b></p>
 
@@ -16,11 +12,8 @@ F1 pit-stop timing formulated as a finite-horizon **Markov Decision Process**, s
 
 Backtested against the actual 2023 season, the resulting policy beats the strategy the real team called in **71% of races**, saving a mean of **4.2 seconds** per race.
 
----
-
 ## Contents
 
-- [The garage](#the-garage)
 - [What this actually does](#what-this-actually-does)
 - [The math](#the-math)
 - [Project layout](#project-layout)
@@ -32,29 +25,9 @@ Backtested against the actual 2023 season, the resulting policy beats the strate
 - [Paper](#paper)
 - [License](#license)
 
----
-
-## The garage
-
-Four fully-animated, self-contained SVGs — no video, no canvas, just CSS keyframes, so they animate right here in this README exactly as they do on the site.
-
 <p align="center">
-  <img src="web/assets/anim/pitstop-side.svg" width="420" alt="Animated pit stop, side view"><br>
-  <sub>Pit stop — side view: jack in, gun off, wheel swap, gun on, launch.</sub>
+  <img src="web/assets/anim/pitstop-side.svg" width="720" alt="Animated F1 pit stop, side view — jack, wheel gun, wheel change, launch">
 </p>
-
-<p align="center">
-  <img src="web/assets/anim/pitstop-top.svg" width="230" alt="Animated pit stop, top view">
-  <img src="web/assets/anim/flyby.svg" width="420" alt="Animated car flying past at speed"><br>
-  <sub>Pit stop — top view (all four corners at once) · Flat out — passing at speed</sub>
-</p>
-
-<p align="center">
-  <img src="web/assets/anim/corner-drift.svg" width="320" alt="Animated car cornering and drifting"><br>
-  <sub>Corner &amp; drift — rear tyres past the limit, smoke, fading skid marks</sub>
-</p>
-
-Play with all four — switch scenarios, change playback speed, hover a part to highlight it — in **[the interactive garage](https://claudialbombin.github.io/pitwall-simulator/garage.html)**.
 
 ## What this actually does
 
@@ -66,6 +39,10 @@ A race strategist has to decide, lap by lap, whether to stay out on ageing tyres
 - **Objective**: minimise expected total race time.
 
 The MDP is solved by backward induction over the full state space to produce an optimal pit-lap policy, which is then validated by running thousands of Monte Carlo race simulations against both the policy and simpler baseline heuristics, and finally checked against what actually happened in real 2023 races.
+
+<p align="center">
+  <img src="web/assets/anim/flyby.svg" width="720" alt="Animated F1 car flying past at speed">
+</p>
 
 ## The math
 
@@ -80,6 +57,10 @@ Full derivations live in the [paper](#paper); the short version:
 **Monte Carlo validation.** The policy is validated over 10,000 simulated race trajectories per scenario, using antithetic variates to reduce estimator variance for a given sample budget. See `core/race_sim.py`.
 
 **Isomorphism with quantitative finance.** The pit/stay decision is structurally the same problem as deciding whether to exercise an American option early: both compare an immediate, known payoff against the expected value of waiting under uncertainty, and both are solved with a Snell-envelope-style backward recursion. The paper works this correspondence through in detail — it's the same reason optimal-stopping theory built for derivatives pricing carries over cleanly to a pit wall.
+
+<p align="center">
+  <img src="web/assets/anim/pitstop-top.svg" width="300" alt="Animated F1 pit stop, top view — all four wheels at once">
+</p>
 
 ## Project layout
 
@@ -102,6 +83,10 @@ Backtested against the 2023 season (`results/backtest_summary.csv`, one row per 
 - Consistent gains across circuits with very different pit-loss profiles (a stop costs roughly 19.4s at Monaco vs. roughly 24.3s at Monza — see `tests/test_mdp.py` for the exact pit-lane deltas used)
 
 `results/` also contains the full diagnostic plot set: tyre degradation fits by compound (`01_*`), safety-car model calibration (`02_*`), and Monte Carlo / backtest validation (`03_*`), including the value-function heatmap and the optimal-pit-window chart.
+
+<p align="center">
+  <img src="web/assets/anim/corner-drift.svg" width="380" alt="Animated F1 car cornering and drifting">
+</p>
 
 ## Live timing
 
@@ -148,7 +133,7 @@ The `web/` directory is a static site (deployed via `.github/workflows/deploy.ym
 - **[Simulator](https://claudialbombin.github.io/pitwall-simulator/simulator.html)** — run the MDP interactively against a chosen circuit and tyre allocation
 - **[The Math](https://claudialbombin.github.io/pitwall-simulator/explainer.html)** — the derivations above, walked through visually
 - **[Live](https://claudialbombin.github.io/pitwall-simulator/live.html)** — the live-timing dashboard
-- **[Garage](https://claudialbombin.github.io/pitwall-simulator/garage.html)** — the animated gallery above, interactive
+- **[Garage](https://claudialbombin.github.io/pitwall-simulator/garage.html)** — the four animations above, playable interactively (pick a scenario, control speed, hover a part to highlight it)
 
 ## Paper
 
