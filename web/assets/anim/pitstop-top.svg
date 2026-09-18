@@ -1,0 +1,131 @@
+<svg viewBox="0 0 240 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated top-down F1 pit stop: car arrives, four wheels change at once, car launches">
+<title>Pit stop — top view</title>
+<defs>
+  <style><![CDATA[
+    :root{ --dur: 6s; }
+    .body-fill{ fill:#e8220a; }
+    .dark{ fill:#0a0a0a; }
+    .carbon{ fill:#111111; }
+    .wheel{ fill:#111111; stroke:#2a2a2a; stroke-width:1.5; }
+    text{ font-family: 'DM Mono', 'Courier New', monospace; }
+
+    #carGroup{ animation: topLaunch var(--dur) cubic-bezier(.5,0,.2,1) infinite; }
+    @keyframes topLaunch{
+      0%   { transform: translateY(140px); opacity:0; }
+      12%  { transform: translateY(0px);   opacity:1; }
+      70%  { transform: translateY(0px);   opacity:1; }
+      86%  { transform: translateY(-260px); opacity:0; }
+      100% { transform: translateY(-260px); opacity:0; }
+    }
+
+    .gun-pulse{ animation: pulse var(--dur) steps(2,end) infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes pulse{
+      0%,22%   { opacity:0; transform: scale(0.4); }
+      26%,46%  { opacity:1; transform: scale(1); }
+      50%,100% { opacity:0; transform: scale(0.4); }
+    }
+    .gun-pulse.d2{ animation-delay: 0s; }
+
+    #crewRing{ animation: crewFade var(--dur) ease-in-out infinite; }
+    @keyframes crewFade{
+      0%,20%   { opacity:0; }
+      26%,48%  { opacity:1; }
+      54%,100% { opacity:0; }
+    }
+
+    #timerTop{ animation: timerT var(--dur) steps(1,end) infinite; }
+    @keyframes timerT{
+      0%,49%  { opacity:0; }
+      50%,66% { opacity:1; }
+      67%,100%{ opacity:0; }
+    }
+
+    #trail line{ animation: trailT var(--dur) linear infinite; }
+    @keyframes trailT{
+      0%,84%   { opacity:0; }
+      86%,94%  { opacity:0.7; }
+      98%,100% { opacity:0; }
+    }
+
+    .box-outline{ stroke:#f5c400; stroke-width:2; opacity:0.5; fill:none; }
+  ]]></style>
+</defs>
+
+<rect width="240" height="320" fill="#080808"/>
+<rect x="20" y="65" width="200" height="245" class="box-outline"/>
+<line x1="20" y1="108" x2="220" y2="108" stroke="#2a2a2a" stroke-width="1"/>
+
+<g id="trail">
+  <line x1="70" y1="250" x2="70" y2="300" stroke="#888880" stroke-width="2"/>
+  <line x1="120" y1="250" x2="120" y2="305" stroke="#888880" stroke-width="2"/>
+  <line x1="170" y1="250" x2="170" y2="300" stroke="#888880" stroke-width="2"/>
+</g>
+
+<g id="carGroup" transform="translate(0,0)">
+  <g transform="translate(40,90)">
+    <!-- front wing -->
+    <g data-part="frontwing"><rect x="38" y="6" width="84" height="6" rx="1" class="carbon"/>
+    <rect x="36" y="4" width="4" height="10" fill="#3a3a3a"/>
+    <rect x="120" y="4" width="4" height="10" fill="#3a3a3a"/></g>
+
+    <!-- front wheels -->
+    <g data-part="wheel"><rect x="28" y="22" width="14" height="30" rx="3" class="wheel"/>
+    <rect x="118" y="22" width="14" height="30" rx="3" class="wheel"/></g>
+
+    <!-- body -->
+    <path d="M80,10
+             C 72,10 66,14 66,22
+             C 60,32 58,40 58,48
+             C 55,58 54,68 54,78
+             C 55,93 58,110 60,128
+             C 62,140 64,154 66,168
+             C 70,184 75,198 80,208
+             C 85,198 90,184 94,168
+             C 96,154 98,140 100,128
+             C 102,110 105,93 106,78
+             C 106,68 105,58 102,48
+             C 102,40 100,32 94,22
+             C 94,14 88,10 80,10
+             Z"
+          class="body-fill" stroke="#0a0a0a" stroke-width="1"/>
+
+    <path d="M56,84 C55,100 57,114 60,126 L70,124 C68,110 67,96 67,84 Z" fill="#c81f0a" opacity="0.65"/>
+    <path d="M104,84 C105,100 103,114 100,126 L90,124 C92,110 93,96 93,84 Z" fill="#c81f0a" opacity="0.65"/>
+
+    <g data-part="halo"><ellipse cx="80" cy="58" rx="14" ry="18" fill="none" class="carbon" stroke-width="4"/>
+    <ellipse cx="80" cy="54" rx="7.5" ry="10" class="dark"/></g>
+
+    <path d="M58,46 C55,58 54,68 54,78" stroke="#f5c400" stroke-width="2" fill="none"/>
+    <path d="M102,46 C105,58 106,68 106,78" stroke="#f5c400" stroke-width="2" fill="none"/>
+
+    <g data-part="number"><circle cx="80" cy="108" r="10" class="carbon"/>
+    <text x="80" y="113" font-size="12" fill="#e8e8e2" text-anchor="middle" font-weight="700">1</text></g>
+
+    <!-- rear wheels -->
+    <g data-part="wheel"><rect x="24" y="156" width="16" height="34" rx="3" class="wheel"/>
+    <rect x="120" y="156" width="16" height="34" rx="3" class="wheel"/></g>
+
+    <!-- rear wing -->
+    <g data-part="rearwing"><rect x="44" y="186" width="72" height="7" rx="1" class="carbon" stroke="#e8e8e2" stroke-width="1"/>
+    <rect x="41" y="184" width="4" height="11" fill="#0a0a0a" stroke="#333" stroke-width="0.6"/>
+    <rect x="115" y="184" width="4" height="11" fill="#0a0a0a" stroke="#333" stroke-width="0.6"/></g>
+
+    <!-- 4 wheel-gun pulses, one per corner -->
+    <circle class="gun-pulse" data-part="gun" cx="35" cy="37" r="10" fill="#f5c400"/>
+    <circle class="gun-pulse" data-part="gun" cx="125" cy="37" r="10" fill="#f5c400"/>
+    <circle class="gun-pulse" data-part="gun" cx="32" cy="173" r="10" fill="#f5c400"/>
+    <circle class="gun-pulse" data-part="gun" cx="128" cy="173" r="10" fill="#f5c400"/>
+
+    <!-- 4 crew members, one per wheel -->
+    <g id="crewRing">
+      <circle cx="14" cy="37" r="7" fill="#4a9eff"/>
+      <circle cx="146" cy="37" r="7" fill="#4a9eff"/>
+      <circle cx="12" cy="173" r="7" fill="#4a9eff"/>
+      <circle cx="148" cy="173" r="7" fill="#4a9eff"/>
+    </g>
+  </g>
+</g>
+
+<text id="timerTop" x="120" y="30" text-anchor="middle" font-size="22" fill="#00e87a" font-weight="700">2.31s</text>
+<text x="120" y="315" text-anchor="middle" font-size="10" letter-spacing="2" fill="#888880">PIT STOP — TOP VIEW</text>
+</svg>

@@ -1,0 +1,135 @@
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated top-down F1 car cornering and drifting through an apex with tyre smoke">
+<title>Corner &amp; drift</title>
+<defs>
+  <style><![CDATA[
+    .body-fill{ fill:#e8220a; }
+    .dark{ fill:#0a0a0a; }
+    .carbon{ fill:#111111; }
+    .wheel{ fill:#111111; stroke:#2a2a2a; stroke-width:1.5; }
+    text{ font-family: 'DM Mono', 'Courier New', monospace; }
+
+    #carDrift{
+      animation: driftPath 5.5s cubic-bezier(.4,0,.3,1) infinite;
+      transform-box: fill-box; transform-origin: center;
+    }
+    @keyframes driftPath{
+      0%   { transform: translate(60px,20px)   rotate(158deg); opacity:0; }
+      8%   { opacity:1; }
+      18%  { transform: translate(118px,96px)  rotate(138deg); }
+      34%  { transform: translate(196px,176px) rotate(108deg); }
+      48%  { transform: translate(246px,222px) rotate(72deg); }
+      62%  { transform: translate(292px,266px) rotate(66deg); }
+      76%  { transform: translate(332px,314px) rotate(46deg); }
+      92%  { transform: translate(368px,364px) rotate(40deg); opacity:1; }
+      100% { transform: translate(388px,392px) rotate(40deg); opacity:0; }
+    }
+
+    #skid{ animation: skidFade 5.5s ease-in infinite; }
+    @keyframes skidFade{
+      0%,32%   { opacity:0; }
+      44%,88%  { opacity:0.9; }
+      96%,100% { opacity:0; }
+    }
+
+    .smoke{ animation: smokeDrift 5.5s ease-out infinite; }
+    @keyframes smokeDrift{
+      0%,38%   { opacity:0; transform: scale(0.3); }
+      50%      { opacity:0.6; transform: scale(1); }
+      75%      { opacity:0.3; transform: scale(1.9) translate(-10px,4px); }
+      88%,100% { opacity:0; transform: scale(0.3); }
+    }
+
+    .apex-kerb{ fill:#f5c400; }
+  ]]></style>
+</defs>
+
+<rect width="400" height="400" fill="#080808"/>
+
+<!-- track: a wide grey band sweeping through the corner -->
+<path d="M-20,-20 C 60,-20 140,40 190,120 C 230,185 280,260 420,300 L 420,420 C 260,380 190,300 140,220 C 90,140 20,70 -20,60 Z"
+      fill="#141416"/>
+<path d="M-20,-20 C 60,-20 140,40 190,120 C 230,185 280,260 420,300"
+      fill="none" stroke="#2a2a2a" stroke-width="1.5"/>
+<path d="M-20,60 C 20,70 90,140 140,220 C 190,300 260,380 420,420"
+      fill="none" stroke="#2a2a2a" stroke-width="1.5"/>
+
+<!-- apex kerb blocks -->
+<g class="apex-kerb">
+  <rect x="205" y="150" width="16" height="8" transform="rotate(35 213 154)"/>
+  <rect x="222" y="168" width="16" height="8" transform="rotate(35 230 172)"/>
+  <rect x="239" y="186" width="16" height="8" transform="rotate(35 247 190)"/>
+</g>
+<g fill="#e8e8e2">
+  <rect x="215" y="160" width="16" height="8" transform="rotate(35 223 164)"/>
+  <rect x="232" y="178" width="16" height="8" transform="rotate(35 240 182)"/>
+</g>
+
+<!-- skid marks left behind the drift -->
+<g id="skid" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round">
+  <path d="M200,170 C 230,205 250,225 280,250 C 310,275 330,300 350,325"/>
+  <path d="M214,182 C 244,217 264,237 294,262 C 324,287 344,312 364,337"/>
+</g>
+
+<g id="carDrift">
+  <g transform="scale(0.62) translate(-80,-115)">
+    <!-- front wing -->
+    <g data-part="frontwing"><rect x="38" y="16" width="84" height="6" rx="1" class="carbon"/>
+    <rect x="36" y="14" width="4" height="10" fill="#3a3a3a"/>
+    <rect x="120" y="14" width="4" height="10" fill="#3a3a3a"/></g>
+
+    <!-- front wheels -->
+    <g data-part="wheel"><rect x="28" y="34" width="14" height="30" rx="3" class="wheel"/>
+    <rect x="118" y="34" width="14" height="30" rx="3" class="wheel"/></g>
+
+    <!-- body -->
+    <path d="M80,22
+             C 72,22 66,26 66,34
+             C 60,44 58,52 58,60
+             C 55,70 54,80 54,90
+             C 55,105 58,122 60,140
+             C 62,152 64,166 66,180
+             C 70,196 75,210 80,220
+             C 85,210 90,196 94,180
+             C 96,166 98,152 100,140
+             C 102,122 105,105 106,90
+             C 106,80 105,70 102,60
+             C 102,52 100,44 94,34
+             C 94,26 88,22 80,22
+             Z"
+          class="body-fill" stroke="#0a0a0a" stroke-width="1"/>
+
+    <path d="M56,96 C55,112 57,126 60,138 L70,136 C68,122 67,108 67,96 Z" fill="#c81f0a" opacity="0.65"/>
+    <path d="M104,96 C105,112 103,126 100,138 L90,136 C92,122 93,108 93,96 Z" fill="#c81f0a" opacity="0.65"/>
+
+    <g data-part="halo"><ellipse cx="80" cy="70" rx="14" ry="18" fill="none" class="carbon" stroke-width="4"/>
+    <ellipse cx="80" cy="66" rx="7.5" ry="10" class="dark"/></g>
+
+    <path d="M58,58 C55,70 54,80 54,90" stroke="#f5c400" stroke-width="2" fill="none"/>
+    <path d="M102,58 C105,70 106,80 106,90" stroke="#f5c400" stroke-width="2" fill="none"/>
+
+    <circle cx="80" cy="120" r="10" class="carbon"/>
+    <text x="80" y="125" font-size="12" fill="#e8e8e2" text-anchor="middle" font-weight="700">1</text>
+
+    <!-- rear wheels, turned outward for the drift look -->
+    <g data-part="wheel"><g transform="rotate(-18 32 185)"><rect x="24" y="168" width="16" height="34" rx="3" class="wheel"/></g>
+    <g transform="rotate(-18 128 185)"><rect x="120" y="168" width="16" height="34" rx="3" class="wheel"/></g></g>
+
+    <!-- rear wing -->
+    <g data-part="rearwing"><rect x="44" y="198" width="72" height="7" rx="1" class="carbon" stroke="#e8e8e2" stroke-width="1"/>
+    <rect x="41" y="196" width="4" height="11" fill="#0a0a0a" stroke="#333" stroke-width="0.6"/>
+    <rect x="115" y="196" width="4" height="11" fill="#0a0a0a" stroke="#333" stroke-width="0.6"/></g>
+
+    <!-- tyre smoke off the rear -->
+    <g class="smoke">
+      <circle cx="20" cy="205" r="16" fill="#999990"/>
+      <circle cx="8" cy="195" r="12" fill="#888880"/>
+    </g>
+    <g class="smoke" style="animation-delay:-0.3s">
+      <circle cx="140" cy="205" r="16" fill="#999990"/>
+      <circle cx="152" cy="195" r="12" fill="#888880"/>
+    </g>
+  </g>
+</g>
+
+<text x="200" y="30" text-anchor="middle" font-size="11" letter-spacing="3" fill="#888880">CORNER &amp; DRIFT</text>
+</svg>
