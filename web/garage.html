@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Garage — Pitwall</title>
+<meta name="description" content="Interactive gallery of animated F1 pit stop, fly-by and cornering illustrations built for the Pitwall stochastic pit-strategy project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#080808; --carbon:#111111; --panel:#161616; --border:#2a2a2a;
+    --text:#e8e8e2; --soft:#888880;
+    --red:#e8220a; --red2:#ff4422; --yellow:#f5c400; --green:#00e87a;
+    --blue:#4a9eff; --orange:#ff8c42;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--black);color:var(--text);
+    font-family:'DM Sans',sans-serif; cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'><text y='20' font-size='20'>🏎️</text></svg>") 4 14, auto;}
+  a{color:inherit;}
+  ::selection{ background:var(--red); color:#fff; }
+
+  header{
+    position:sticky; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 28px; background:rgba(8,8,8,0.88); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .logo{ font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:1px; text-decoration:none; }
+  .logo span{ color:var(--red); }
+  nav{ display:flex; gap:22px; align-items:center; }
+  nav a{
+    text-decoration:none; font-family:'DM Mono',monospace; font-size:12.5px;
+    letter-spacing:1.5px; text-transform:uppercase; color:var(--soft);
+    padding-bottom:3px; border-bottom:2px solid transparent; transition:.2s;
+  }
+  nav a:hover{ color:var(--text); }
+  .nav-cta{
+    font-family:'DM Mono',monospace; font-size:12.5px; letter-spacing:1.5px; text-transform:uppercase;
+    background:var(--red); color:#fff; padding:8px 16px; text-decoration:none; transition:background .2s;
+    border-bottom:none !important;
+  }
+  .nav-cta:hover{ background:var(--red2); color:#fff !important; }
+  @media (max-width:720px){ .hide-mobile{ display:none; } }
+
+  .hero{ padding:64px 28px 28px; text-align:center; }
+  .kicker{ font-family:'DM Mono',monospace; letter-spacing:4px; font-size:11px; color:var(--red2); text-transform:uppercase; }
+  .hero h1{
+    font-family:'Bebas Neue',sans-serif; font-size:clamp(46px,9vw,96px);
+    line-height:0.92; margin:8px 0 14px; letter-spacing:1px;
+  }
+  .hero h1 .accent{ color:var(--red); }
+  .hero p{ color:var(--soft); max-width:560px; margin:0 auto; font-size:15px; line-height:1.6; }
+
+  .wrap{ max-width:980px; margin:0 auto; padding:0 20px 80px; }
+
+  .tabs{
+    display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:38px 0 22px;
+  }
+  .scenario-btn{
+    font-family:'DM Mono',monospace; font-size:12px; letter-spacing:1px; text-transform:uppercase;
+    background:var(--panel); border:1px solid var(--border); color:var(--soft);
+    padding:11px 18px; border-radius:3px; cursor:pointer; transition:.15s;
+    display:flex; align-items:center; gap:8px;
+  }
+  .scenario-btn .dot{ width:7px; height:7px; border-radius:50%; background:var(--border); transition:.15s; }
+  .scenario-btn:hover{ color:var(--text); border-color:#3a3a3a; }
+  .scenario-btn.active{ color:var(--black); background:var(--yellow); border-color:var(--yellow); font-weight:700; }
+  .scenario-btn.active .dot{ background:var(--black); }
+
+  .stage-frame{
+    position:relative; background:var(--panel); border:1px solid var(--border);
+    border-radius:6px; padding:0; overflow:hidden;
+  }
+  .stage-frame::before{
+    content:'LIVE FEED'; position:absolute; top:12px; left:14px; z-index:5;
+    font-family:'DM Mono',monospace; font-size:10px; letter-spacing:2px; color:var(--red2);
+  }
+  .stage-frame::after{
+    content:''; position:absolute; top:11px; left:0; width:8px; height:8px; margin-left: 4px;
+  }
+  .rec-dot{
+    position:absolute; top:12px; left:96px; width:7px; height:7px; border-radius:50%;
+    background:var(--red); z-index:5; animation:blink 1.1s steps(1,end) infinite;
+  }
+  @keyframes blink{ 0%,49%{opacity:1;} 50%,100%{opacity:0.15;} }
+
+  .stage{ display:none; width:100%; align-items:center; justify-content:center; padding:34px 18px 22px; }
+  .stage.active{ display:flex; }
+  .stage svg{ width:100%; max-width:560px; height:auto; display:block; }
+
+  [data-part]{ transition: filter .18s ease; }
+  [data-part].hl{ filter: drop-shadow(0 0 7px var(--yellow)) drop-shadow(0 0 2px var(--yellow)); }
+
+  .controls{
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
+    gap:10px; padding:16px 18px 20px; border-top:1px solid var(--border);
+  }
+  .ctrl-group{ display:flex; gap:6px; align-items:center; }
+  .ctrl-label{ font-family:'DM Mono',monospace; font-size:10px; letter-spacing:1.5px; color:var(--soft); margin-right:4px; text-transform:uppercase; }
+  button.pill, .speed-btn{
+    font-family:'DM Mono',monospace; font-size:11.5px; letter-spacing:.5px;
+    background:var(--carbon); border:1px solid var(--border); color:var(--text);
+    padding:8px 13px; border-radius:20px; cursor:pointer; transition:.15s;
+  }
+  button.pill:hover, .speed-btn:hover{ border-color:var(--yellow); }
+  .speed-btn.active{ background:var(--yellow); color:var(--black); border-color:var(--yellow); font-weight:700; }
+  #playPauseBtn{ background:var(--red); border-color:var(--red); font-weight:700; }
+  #playPauseBtn:hover{ background:var(--red2); border-color:var(--red2); }
+
+  .legend{
+    display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+    padding:4px 18px 24px;
+  }
+  .chip{
+    font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.5px;
+    background:transparent; border:1px dashed var(--border); color:var(--soft);
+    padding:6px 12px; border-radius:16px; cursor:default; transition:.15s;
+  }
+  .chip:hover, .chip.on{ color:var(--yellow); border-color:var(--yellow); border-style:solid; }
+
+  .caption{ text-align:center; color:var(--soft); font-size:13px; margin-top:16px; line-height:1.6; }
+  .caption b{ color:var(--text); }
+
+  .grid-note{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; margin-top:52px;
+  }
+  .note-card{ background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:18px 18px 16px; }
+  .note-card h3{ font-family:'DM Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--yellow); margin:0 0 8px; }
+  .note-card p{ font-size:13px; color:var(--soft); line-height:1.6; margin:0; }
+
+  footer{
+    border-top:1px solid var(--border); padding:26px 28px; text-align:center;
+    color:var(--soft); font-family:'DM Mono',monospace; font-size:11.5px; letter-spacing:.5px;
+  }
+  footer a{ color:var(--blue); text-decoration:none; }
+  footer a:hover{ text-decoration:underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">PIT<span>WALL</span></a>
+  <nav>
+    <a href="index.html" class="hide-mobile">Home</a>
+    <a href="explainer.html" class="hide-mobile">The Math</a>
+    <a href="live.html" class="hide-mobile">Live</a>
+    <a href="simulator.html" class="nav-cta">Open Simulator →</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="kicker">Interactive gallery</div>
+  <h1>THE <span class="accent">GARAGE</span></h1>
+  <p>Four hand-built, fully animated F1 illustrations — pick a scenario, control the playback, and hover a part to see it highlighted. Everything here is a single self-contained SVG: no video, no canvas, just CSS keyframes.</p>
+</section>
+
+<div class="wrap">
+
+  <div class="tabs" role="tablist" aria-label="Animation scenario">
+    <button class="scenario-btn active" data-scenario="pitstop-side"><span class="dot"></span>Pit Stop — Side</button>
+    <button class="scenario-btn" data-scenario="pitstop-top"><span class="dot"></span>Pit Stop — Top</button>
+    <button class="scenario-btn" data-scenario="flyby"><span class="dot"></span>Fly-By</button>
+    <button class="scenario-btn" data-scenario="corner-drift"><span class="dot"></span>Corner &amp; Drift</button>
+  </div>
+
+  <div class="stage-frame">
+    <div class="rec-dot"></div>
+
+    <div class="stage active" data-scenario="pitstop-side">
+<svg viewBox="0 0 480 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated side-view F1 pit stop: wheel change and launch">
+<title>Pit stop — side view</title>
+<defs>
+  <style><![CDATA[
+    :root{ --dur: 6s; }
+    .bg{ fill:#080808; }
+    .tarmac{ fill:#111114; }
+    .box-line{ stroke:#f5c400; stroke-width:2; opacity:0.55; }
+    .body-fill{ fill:#e8220a; }
+    .dark{ fill:#0a0a0a; }
+    .carbon{ fill:#111111; }
+    .rim{ fill:#1c1c1c; stroke:#444; stroke-width:1.5; }
+    .tyre{ fill:#111111; stroke:#2a2a2a; stroke-width:2; }
+    .accent{ stroke:#f5c400; stroke-width:2; fill:none; }
+    text{ font-family: 'DM Mono', 'Courier New', monospace; }
+
+    #car{ animation: launch var(--dur) cubic-bezier(.5,0,.2,1) infinite; }
+    @keyframes launch{
+      0%        { transform: translate(0,0); opacity:1; }
+      60%       { transform: translate(0,0); opacity:1; }
+      70%       { transform: translate(2px,1px); opacity:1; }
+      82%       { transform: translate(210px,0); opacity:1; }
+      86%       { transform: translate(560px,0); opacity:0; }
+      100%      { transform: translate(560px,0); opacity:0; }
+    }
+
+    #jack{ animation: jackAnim var(--dur) linear infinite; transform-origin: 340px 210px; }
+    @keyframes jackAnim{
+      0%, 8%    { opacity:0; transform: translateY(10px); }
+      12%, 54%  { opacity:1; transform: translateY(0); }
+      60%,100%  { opacity:0; transform: translateY(10px); }
+    }
+
+    #carLift{ animation: liftAnim var(--dur) ease-in-out infinite; }
+    @keyframes liftAnim{
+      0%, 9%    { transform: translateY(0); }
+      13%, 55%  { transform: translateY(-7px); }
+      59%,100%  { transform: translateY(0); }
+    }
+
+    #wheelOld{ animation: wheelOffAnim var(--dur) ease-in infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes wheelOffAnim{
+      0%, 15%  { transform: translate(0,0) rotate(0deg); opacity:1; }
+      29%      { transform: translate(6px,34px) rotate(80deg); opacity:0; }
+      100%     { transform: translate(6px,34px) rotate(80deg); opacity:0; }
+    }
+
+    #wheelNew{ animation: wheelOnAnim var(--dur) ease-out infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes wheelOnAnim{
+      0%, 35%  { transform: translate(-6px,34px) rotate(-40deg); opacity:0; }
+      49%,58%  { transform: translate(0,0) rotate(0deg); opacity:1; }
+      68%      { transform: translate(0,0) rotate(140deg); opacity:1; }
+      80%,100% { transform: translate(0,0) rotate(140deg); opacity:1; }
+    }
+
+    #gun{ animation: gunAnim var(--dur) steps(2,end) infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes gunAnim{
+      0%,13%    { opacity:0; }
+      15%,29%   { opacity:1; }
+      30%,35%   { opacity:0; }
+      36%,49%   { opacity:1; }
+      50%,100%  { opacity:0; }
+    }
+    #gunBit{ animation: gunSpin 0.12s linear infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes gunSpin{ to{ transform: rotate(360deg); } }
+
+    .crew{ animation: crewAnim var(--dur) ease-in-out infinite; }
+    @keyframes crewAnim{
+      0%,12%   { opacity:0; transform: translateY(6px); }
+      16%,48%  { opacity:1; transform: translateY(0); }
+      53%,100% { opacity:0; transform: translateY(6px); }
+    }
+
+    #smoke circle{ animation: smokeAnim var(--dur) ease-out infinite; }
+    @keyframes smokeAnim{
+      0%,79%   { opacity:0; transform: scale(0.3) translate(0,0); }
+      84%      { opacity:0.55; }
+      98%      { opacity:0; transform: scale(2.2) translate(-30px,-10px); }
+      100%     { opacity:0; transform: scale(0.3) translate(0,0); }
+    }
+
+    #streaks{ animation: streakAnim var(--dur) linear infinite; }
+    @keyframes streakAnim{
+      0%,78%  { opacity:0; }
+      80%,90% { opacity:0.8; }
+      93%,100%{ opacity:0; }
+    }
+
+    #timer{ animation: timerAnim var(--dur) steps(1,end) infinite; }
+    @keyframes timerAnim{
+      0%,49%   { opacity:0; }
+      50%,60%  { opacity:1; }
+      61%,100% { opacity:0; }
+    }
+
+    #frontWheel{ animation: frontSpin var(--dur) linear infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes frontSpin{
+      0%,78%   { transform: rotate(0deg); }
+      88%,100% { transform: rotate(720deg); }
+    }
+  ]]></style>
+</defs>
+
+<rect class="bg" width="480" height="220"/>
+<rect class="tarmac" x="0" y="188" width="480" height="32"/>
+<line class="box-line" x1="0" y1="188" x2="480" y2="188"/>
+<line class="box-line" x1="60" y1="188" x2="60" y2="220"/>
+<line class="box-line" x1="420" y1="188" x2="420" y2="220"/>
+
+<g id="streaks">
+  <line x1="20" y1="150" x2="90" y2="150" stroke="#888880" stroke-width="2"/>
+  <line x1="10" y1="165" x2="100" y2="165" stroke="#888880" stroke-width="2"/>
+  <line x1="25" y1="180" x2="85" y2="180" stroke="#888880" stroke-width="2"/>
+</g>
+
+<g id="smoke">
+  <circle cx="330" cy="196" r="10" fill="#888880"/>
+  <circle cx="336" cy="190" r="8" fill="#666660"/>
+  <circle cx="322" cy="192" r="7" fill="#777770"/>
+</g>
+
+<g id="jack">
+  <polygon points="335,206 350,206 342,182" fill="#f5c400"/>
+  <rect x="340" y="204" width="4" height="6" fill="#333"/>
+</g>
+
+<g id="car">
+  <g id="carLift">
+    <!-- front wing -->
+    <g data-part="frontwing">
+    <rect x="14" y="182" width="38" height="4" class="carbon"/>
+    <rect x="14" y="178" width="3" height="10" fill="#3a3a3a"/>
+    <rect x="49" y="178" width="3" height="10" fill="#3a3a3a"/>
+    </g>
+
+    <!-- rear wing -->
+    <g data-part="rearwing">
+    <rect x="316" y="150" width="4" height="12" fill="#333"/>
+    <path d="M300,144 L334,138 L334,150 L300,152 Z" class="carbon" stroke="#e8e8e2" stroke-width="1"/>
+    <rect x="331" y="132" width="4" height="20" fill="#0a0a0a" stroke="#333" stroke-width="0.6"/>
+    </g>
+
+    <!-- body -->
+    <path d="M24,188 C34,188 42,184 50,178 L69,168 C94,156 132,152 164,152
+             C186,152 204,150 220,150 C236,150 252,152 264,156
+             C278,160 289,169 294,178 L298,186 L298,189 L24,189 Z"
+          class="body-fill" stroke="#0a0a0a" stroke-width="1"/>
+
+    <!-- sidepod + halo + cockpit -->
+    <g data-part="sidepod"><path d="M138,152 C140,134 162,124 182,124 C202,124 215,133 219,150" class="body-fill" stroke="#0a0a0a" stroke-width="1"/></g>
+    <g data-part="halo"><path d="M162,130 C166,116 196,116 201,131" fill="none" class="carbon" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="180" cy="137" rx="11" ry="6.5" class="dark"/></g>
+
+    <line x1="69" y1="168" x2="264" y2="156" class="accent"/>
+
+    <g id="rearWheel" data-part="wheel">
+      <g transform="translate(300,188)">
+        <g id="wheelOld">
+          <circle r="21" class="tyre"/>
+          <circle r="9" class="rim"/>
+          <circle r="2" fill="#444"/>
+        </g>
+      </g>
+      <g transform="translate(300,188)">
+        <g id="wheelNew">
+          <circle r="21" class="tyre"/>
+          <circle r="9" class="rim"/>
+          <circle r="2" fill="#444"/>
+        </g>
+      </g>
+      <g id="gun" data-part="gun" transform="translate(300,188)">
+        <rect x="9" y="-4" width="20" height="8" rx="2" fill="#888880"/>
+        <g id="gunBit"><circle r="5" fill="#f5c400"/></g>
+      </g>
+    </g>
+
+    <g transform="translate(96,188)" data-part="wheel">
+      <g id="frontWheel">
+        <circle r="17" class="tyre"/>
+        <circle r="7.5" class="rim"/>
+        <circle r="1.8" fill="#444"/>
+      </g>
+    </g>
+  </g>
+</g>
+
+<g class="crew">
+  <ellipse cx="270" cy="176" rx="7" ry="11" fill="#4a9eff"/>
+  <circle cx="270" cy="162" r="5" fill="#e8e8e2"/>
+  <ellipse cx="332" cy="176" rx="7" ry="11" fill="#4a9eff"/>
+  <circle cx="332" cy="162" r="5" fill="#e8e8e2"/>
+</g>
+
+<text id="timer" x="240" y="30" text-anchor="middle" font-size="22" fill="#00e87a" font-weight="700">2.31s</text>
+<text x="240" y="205" text-anchor="middle" font-size="10" letter-spacing="2" fill="#888880">PIT STOP — SIDE VIEW</text>
+</svg>
+    </div>
+
+    <div class="stage" data-scenario="pitstop-top">
+<svg viewBox="0 0 240 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated top-down F1 pit stop: car arrives, four wheels change at once, car launches">
+<title>Pit stop — top view</title>
+<defs>
+  <style><![CDATA[
+    :root{ --dur: 6s; }
+    .body-fill{ fill:#e8220a; }
+    .dark{ fill:#0a0a0a; }
+    .carbon{ fill:#111111; }
+    .wheel{ fill:#111111; stroke:#2a2a2a; stroke-width:1.5; }
+    text{ font-family: 'DM Mono', 'Courier New', monospace; }
+
+    #carGroup{ animation: topLaunch var(--dur) cubic-bezier(.5,0,.2,1) infinite; }
+    @keyframes topLaunch{
+      0%   { transform: translateY(140px); opacity:0; }
+      12%  { transform: translateY(0px);   opacity:1; }
+      70%  { transform: translateY(0px);   opacity:1; }
+      86%  { transform: translateY(-260px); opacity:0; }
+      100% { transform: translateY(-260px); opacity:0; }
+    }
+
+    .gun-pulse{ animation: pulse var(--dur) steps(2,end) infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes pulse{
+      0%,22%   { opacity:0; transform: scale(0.4); }
+      26%,46%  { opacity:1; transform: scale(1); }
+      50%,100% { opacity:0; transform: scale(0.4); }
+    }
+    .gun-pulse.d2{ animation-delay: 0s; }
+
+    #crewRing{ animation: crewFade var(--dur) ease-in-out infinite; }
+    @keyframes crewFade{
+      0%,20%   { opacity:0; }
+      26%,48%  { opacity:1; }
+      54%,100% { opacity:0; }
+    }
+
+    #timerTop{ animation: timerT var(--dur) steps(1,end) infinite; }
+    @keyframes timerT{
+      0%,49%  { opacity:0; }
+      50%,66% { opacity:1; }
+      67%,100%{ opacity:0; }
+    }
+
+    #trail line{ animation: trailT var(--dur) linear infinite; }
+    @keyframes trailT{
+      0%,84%   { opacity:0; }
+      86%,94%  { opacity:0.7; }
+      98%,100% { opacity:0; }
+    }
+
+    .box-outline{ stroke:#f5c400; stroke-width:2; opacity:0.5; fill:none; }
+  ]]></style>
+</defs>
+
+<rect width="240" height="320" fill="#080808"/>
+<rect x="20" y="65" width="200" height="245" class="box-outline"/>
+<line x1="20" y1="108" x2="220" y2="108" stroke="#2a2a2a" stroke-width="1"/>
+
+<g id="trail">
+  <line x1="70" y1="250" x2="70" y2="300" stroke="#888880" stroke-width="2"/>
+  <line x1="120" y1="250" x2="120" y2="305" stroke="#888880" stroke-width="2"/>
+  <line x1="170" y1="250" x2="170" y2="300" stroke="#888880" stroke-width="2"/>
+</g>
+
+<g id="carGroup" transform="translate(0,0)">
+  <g transform="translate(40,90)">
+    <!-- front wing -->
+    <g data-part="frontwing"><rect x="38" y="6" width="84" height="6" rx="1" class="carbon"/>
+    <rect x="36" y="4" width="4" height="10" fill="#3a3a3a"/>
+    <rect x="120" y="4" width="4" height="10" fill="#3a3a3a"/></g>
+
+    <!-- front wheels -->
+    <g data-part="wheel"><rect x="28" y="22" width="14" height="30" rx="3" class="wheel"/>
+    <rect x="118" y="22" width="14" height="30" rx="3" class="wheel"/></g>
+
+    <!-- body -->
+    <path d="M80,10
+             C 72,10 66,14 66,22
+             C 60,32 58,40 58,48
+             C 55,58 54,68 54,78
+             C 55,93 58,110 60,128
+             C 62,140 64,154 66,168
+             C 70,184 75,198 80,208
+             C 85,198 90,184 94,168
+             C 96,154 98,140 100,128
+             C 102,110 105,93 106,78
+             C 106,68 105,58 102,48
+             C 102,40 100,32 94,22
+             C 94,14 88,10 80,10
+             Z"
+          class="body-fill" stroke="#0a0a0a" stroke-width="1"/>
+
+    <path d="M56,84 C55,100 57,114 60,126 L70,124 C68,110 67,96 67,84 Z" fill="#c81f0a" opacity="0.65"/>
+    <path d="M104,84 C105,100 103,114 100,126 L90,124 C92,110 93,96 93,84 Z" fill="#c81f0a" opacity="0.65"/>
+
+    <g data-part="halo"><ellipse cx="80" cy="58" rx="14" ry="18" fill="none" class="carbon" stroke-width="4"/>
+    <ellipse cx="80" cy="54" rx="7.5" ry="10" class="dark"/></g>
+
+    <path d="M58,46 C55,58 54,68 54,78" stroke="#f5c400" stroke-width="2" fill="none"/>
+    <path d="M102,46 C105,58 106,68 106,78" stroke="#f5c400" stroke-width="2" fill="none"/>
+
+    <g data-part="number"><circle cx="80" cy="108" r="10" class="carbon"/>
+    <text x="80" y="113" font-size="12" fill="#e8e8e2" text-anchor="middle" font-weight="700">1</text></g>
+
+    <!-- rear wheels -->
+    <g data-part="wheel"><rect x="24" y="156" width="16" height="34" rx="3" class="wheel"/>
+    <rect x="120" y="156" width="16" height="34" rx="3" class="wheel"/></g>
+
+    <!-- rear wing -->
+    <g data-part="rearwing"><rect x="44" y="186" width="72" height="7" rx="1" class="carbon" stroke="#e8e8e2" stroke-width="1"/>
+    <rect x="41" y="184" width="4" height="11" fill="#0a0a0a" stroke="#333" stroke-width="0.6"/>
+    <rect x="115" y="184" width="4" height="11" fill="#0a0a0a" stroke="#333" stroke-width="0.6"/></g>
+
+    <!-- 4 wheel-gun pulses, one per corner -->
+    <circle class="gun-pulse" data-part="gun" cx="35" cy="37" r="10" fill="#f5c400"/>
+    <circle class="gun-pulse" data-part="gun" cx="125" cy="37" r="10" fill="#f5c400"/>
+    <circle class="gun-pulse" data-part="gun" cx="32" cy="173" r="10" fill="#f5c400"/>
+    <circle class="gun-pulse" data-part="gun" cx="128" cy="173" r="10" fill="#f5c400"/>
+
+    <!-- 4 crew members, one per wheel -->
+    <g id="crewRing">
+      <circle cx="14" cy="37" r="7" fill="#4a9eff"/>
+      <circle cx="146" cy="37" r="7" fill="#4a9eff"/>
+      <circle cx="12" cy="173" r="7" fill="#4a9eff"/>
+      <circle cx="148" cy="173" r="7" fill="#4a9eff"/>
+    </g>
+  </g>
+</g>
+
+<text id="timerTop" x="120" y="30" text-anchor="middle" font-size="22" fill="#00e87a" font-weight="700">2.31s</text>
+<text x="120" y="315" text-anchor="middle" font-size="10" letter-spacing="2" fill="#888880">PIT STOP — TOP VIEW</text>
+</svg>
+    </div>
+
+    <div class="stage" data-scenario="flyby">
+<svg viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated F1 car flying past at speed">
+<title>Fly-by — full speed</title>
+<defs>
+  <style><![CDATA[
+    .tarmac{ fill:#111114; }
+    .body-fill{ fill:#e8220a; }
+    .dark{ fill:#0a0a0a; }
+    .carbon{ fill:#111111; }
+    .rim{ fill:#1c1c1c; stroke:#444; stroke-width:1.5; }
+    .tyre{ fill:#111111; stroke:#2a2a2a; stroke-width:2; }
+    .accent{ stroke:#f5c400; stroke-width:2; fill:none; }
+    text{ font-family: 'DM Mono', 'Courier New', monospace; }
+
+    #carWrap{ animation: drive 2.6s linear infinite; }
+    @keyframes drive{
+      0%   { transform: translateX(-180px); }
+      100% { transform: translateX(780px); }
+    }
+    #wheelSpin{ animation: spin 0.22s linear infinite; }
+    @keyframes spin{ to{ transform: rotate(360deg); } }
+
+    .kerb{ animation: kerbMove 0.5s linear infinite; }
+    @keyframes kerbMove{ 0%{ transform: translateX(0);} 100%{ transform: translateX(-40px);} }
+
+    .streak{ animation: streakMove 2.6s linear infinite; }
+    @keyframes streakMove{
+      0%   { transform: translateX(-260px); opacity:0; }
+      6%   { opacity:0.6; }
+      40%  { opacity:0.6; }
+      48%  { opacity:0; transform: translateX(340px); }
+      100% { opacity:0; transform: translateX(340px); }
+    }
+  ]]></style>
+</defs>
+
+<rect width="600" height="160" fill="#080808"/>
+<rect class="tarmac" x="0" y="128" width="600" height="32"/>
+<line x1="0" y1="128" x2="600" y2="128" stroke="#2a2a2a" stroke-width="1"/>
+
+<g class="kerb">
+  <g fill="#e8220a">
+    <rect x="-40" y="150" width="20" height="6"/><rect x="0" y="150" width="20" height="6"/>
+    <rect x="40" y="150" width="20" height="6"/><rect x="80" y="150" width="20" height="6"/>
+    <rect x="120" y="150" width="20" height="6"/><rect x="160" y="150" width="20" height="6"/>
+    <rect x="200" y="150" width="20" height="6"/><rect x="240" y="150" width="20" height="6"/>
+    <rect x="280" y="150" width="20" height="6"/><rect x="320" y="150" width="20" height="6"/>
+    <rect x="360" y="150" width="20" height="6"/><rect x="400" y="150" width="20" height="6"/>
+    <rect x="440" y="150" width="20" height="6"/><rect x="480" y="150" width="20" height="6"/>
+    <rect x="520" y="150" width="20" height="6"/><rect x="560" y="150" width="20" height="6"/>
+    <rect x="600" y="150" width="20" height="6"/><rect x="640" y="150" width="20" height="6"/>
+  </g>
+</g>
+
+<g class="streak" style="animation-delay:0s">
+  <rect x="0" y="118" width="70" height="3" fill="#e8e8e2" opacity="0.5"/>
+</g>
+<g class="streak" style="animation-delay:-0.9s">
+  <rect x="0" y="108" width="50" height="2" fill="#e8e8e2" opacity="0.4"/>
+</g>
+<g class="streak" style="animation-delay:-1.8s">
+  <rect x="0" y="122" width="40" height="2" fill="#e8e8e2" opacity="0.35"/>
+</g>
+
+<g id="carWrap">
+  <!-- front wing -->
+  <g data-part="frontwing"><rect x="14" y="122" width="38" height="4" class="carbon"/>
+  <rect x="14" y="118" width="3" height="10" fill="#3a3a3a"/>
+  <rect x="49" y="118" width="3" height="10" fill="#3a3a3a"/></g>
+
+  <!-- rear wing -->
+  <g data-part="rearwing"><rect x="116" y="90" width="4" height="12" fill="#333"/>
+  <path d="M100,84 L134,78 L134,90 L100,92 Z" class="carbon" stroke="#e8e8e2" stroke-width="1"/>
+  <rect x="131" y="72" width="4" height="20" fill="#0a0a0a" stroke="#333" stroke-width="0.6"/></g>
+
+  <!-- body -->
+  <path d="M24,128 C34,128 42,124 50,118 L69,108 C94,96 132,92 164,92
+           C186,92 204,90 220,90 C236,90 252,92 264,96
+           C278,100 289,109 294,118 L298,126 L298,129 L24,129 Z"
+        class="body-fill" stroke="#0a0a0a" stroke-width="1"/>
+
+  <path d="M138,92 C140,74 162,64 182,64 C202,64 215,73 219,90" class="body-fill" stroke="#0a0a0a" stroke-width="1"/>
+  <g data-part="halo"><path d="M162,70 C166,56 196,56 201,71" fill="none" class="carbon" stroke-width="5" stroke-linecap="round"/>
+  <ellipse cx="180" cy="77" rx="11" ry="6.5" class="dark"/></g>
+
+  <line x1="69" y1="108" x2="264" y2="96" class="accent"/>
+
+  <g transform="translate(100,128)" data-part="wheel">
+    <g id="wheelSpin">
+      <circle r="21" class="tyre"/>
+      <circle r="9" class="rim"/>
+      <line x1="-9" y1="0" x2="9" y2="0" stroke="#444" stroke-width="1.5"/>
+      <line x1="0" y1="-9" x2="0" y2="9" stroke="#444" stroke-width="1.5"/>
+    </g>
+  </g>
+  <g transform="translate(296,128)" data-part="wheel">
+    <g id="wheelSpin2" style="animation: spin 0.22s linear infinite;">
+      <circle r="21" class="tyre"/>
+      <circle r="9" class="rim"/>
+      <line x1="-9" y1="0" x2="9" y2="0" stroke="#444" stroke-width="1.5"/>
+      <line x1="0" y1="-9" x2="0" y2="9" stroke="#444" stroke-width="1.5"/>
+    </g>
+  </g>
+</g>
+
+<text x="300" y="24" text-anchor="middle" font-size="11" letter-spacing="3" fill="#888880">FLAT OUT</text>
+</svg>
+    </div>
+
+    <div class="stage" data-scenario="corner-drift">
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated top-down F1 car cornering and drifting through an apex with tyre smoke">
+<title>Corner &amp; drift</title>
+<defs>
+  <style><![CDATA[
+    .body-fill{ fill:#e8220a; }
+    .dark{ fill:#0a0a0a; }
+    .carbon{ fill:#111111; }
+    .wheel{ fill:#111111; stroke:#2a2a2a; stroke-width:1.5; }
+    text{ font-family: 'DM Mono', 'Courier New', monospace; }
+
+    #carDrift{
+      animation: driftPath 5.5s cubic-bezier(.4,0,.3,1) infinite;
+      transform-box: fill-box; transform-origin: center;
+    }
+    @keyframes driftPath{
+      0%   { transform: translate(60px,20px)   rotate(158deg); opacity:0; }
+      8%   { opacity:1; }
+      18%  { transform: translate(118px,96px)  rotate(138deg); }
+      34%  { transform: translate(196px,176px) rotate(108deg); }
+      48%  { transform: translate(246px,222px) rotate(72deg); }
+      62%  { transform: translate(292px,266px) rotate(66deg); }
+      76%  { transform: translate(332px,314px) rotate(46deg); }
+      92%  { transform: translate(368px,364px) rotate(40deg); opacity:1; }
+      100% { transform: translate(388px,392px) rotate(40deg); opacity:0; }
+    }
+
+    #skid{ animation: skidFade 5.5s ease-in infinite; }
+    @keyframes skidFade{
+      0%,32%   { opacity:0; }
+      44%,88%  { opacity:0.9; }
+      96%,100% { opacity:0; }
+    }
+
+    .smoke{ animation: smokeDrift 5.5s ease-out infinite; }
+    @keyframes smokeDrift{
+      0%,38%   { opacity:0; transform: scale(0.3); }
+      50%      { opacity:0.6; transform: scale(1); }
+      75%      { opacity:0.3; transform: scale(1.9) translate(-10px,4px); }
+      88%,100% { opacity:0; transform: scale(0.3); }
+    }
+
+    .apex-kerb{ fill:#f5c400; }
+  ]]></style>
+</defs>
+
+<rect width="400" height="400" fill="#080808"/>
+
+<!-- track: a wide grey band sweeping through the corner -->
+<path d="M-20,-20 C 60,-20 140,40 190,120 C 230,185 280,260 420,300 L 420,420 C 260,380 190,300 140,220 C 90,140 20,70 -20,60 Z"
+      fill="#141416"/>
+<path d="M-20,-20 C 60,-20 140,40 190,120 C 230,185 280,260 420,300"
+      fill="none" stroke="#2a2a2a" stroke-width="1.5"/>
+<path d="M-20,60 C 20,70 90,140 140,220 C 190,300 260,380 420,420"
+      fill="none" stroke="#2a2a2a" stroke-width="1.5"/>
+
+<!-- apex kerb blocks -->
+<g class="apex-kerb">
+  <rect x="205" y="150" width="16" height="8" transform="rotate(35 213 154)"/>
+  <rect x="222" y="168" width="16" height="8" transform="rotate(35 230 172)"/>
+  <rect x="239" y="186" width="16" height="8" transform="rotate(35 247 190)"/>
+</g>
+<g fill="#e8e8e2">
+  <rect x="215" y="160" width="16" height="8" transform="rotate(35 223 164)"/>
+  <rect x="232" y="178" width="16" height="8" transform="rotate(35 240 182)"/>
+</g>
+
+<!-- skid marks left behind the drift -->
+<g id="skid" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round">
+  <path d="M200,170 C 230,205 250,225 280,250 C 310,275 330,300 350,325"/>
+  <path d="M214,182 C 244,217 264,237 294,262 C 324,287 344,312 364,337"/>
+</g>
+
+<g id="carDrift">
+  <g transform="scale(0.62) translate(-80,-115)">
+    <!-- front wing -->
+    <g data-part="frontwing"><rect x="38" y="16" width="84" height="6" rx="1" class="carbon"/>
+    <rect x="36" y="14" width="4" height="10" fill="#3a3a3a"/>
+    <rect x="120" y="14" width="4" height="10" fill="#3a3a3a"/></g>
+
+    <!-- front wheels -->
+    <g data-part="wheel"><rect x="28" y="34" width="14" height="30" rx="3" class="wheel"/>
+    <rect x="118" y="34" width="14" height="30" rx="3" class="wheel"/></g>
+
+    <!-- body -->
+    <path d="M80,22
+             C 72,22 66,26 66,34
+             C 60,44 58,52 58,60
+             C 55,70 54,80 54,90
+             C 55,105 58,122 60,140
+             C 62,152 64,166 66,180
+             C 70,196 75,210 80,220
+             C 85,210 90,196 94,180
+             C 96,166 98,152 100,140
+             C 102,122 105,105 106,90
+             C 106,80 105,70 102,60
+             C 102,52 100,44 94,34
+             C 94,26 88,22 80,22
+             Z"
+          class="body-fill" stroke="#0a0a0a" stroke-width="1"/>
+
+    <path d="M56,96 C55,112 57,126 60,138 L70,136 C68,122 67,108 67,96 Z" fill="#c81f0a" opacity="0.65"/>
+    <path d="M104,96 C105,112 103,126 100,138 L90,136 C92,122 93,108 93,96 Z" fill="#c81f0a" opacity="0.65"/>
+
+    <g data-part="halo"><ellipse cx="80" cy="70" rx="14" ry="18" fill="none" class="carbon" stroke-width="4"/>
+    <ellipse cx="80" cy="66" rx="7.5" ry="10" class="dark"/></g>
+
+    <path d="M58,58 C55,70 54,80 54,90" stroke="#f5c400" stroke-width="2" fill="none"/>
+    <path d="M102,58 C105,70 106,80 106,90" stroke="#f5c400" stroke-width="2" fill="none"/>
+
+    <circle cx="80" cy="120" r="10" class="carbon"/>
+    <text x="80" y="125" font-size="12" fill="#e8e8e2" text-anchor="middle" font-weight="700">1</text>
+
+    <!-- rear wheels, turned outward for the drift look -->
+    <g data-part="wheel"><g transform="rotate(-18 32 185)"><rect x="24" y="168" width="16" height="34" rx="3" class="wheel"/></g>
+    <g transform="rotate(-18 128 185)"><rect x="120" y="168" width="16" height="34" rx="3" class="wheel"/></g></g>
+
+    <!-- rear wing -->
+    <g data-part="rearwing"><rect x="44" y="198" width="72" height="7" rx="1" class="carbon" stroke="#e8e8e2" stroke-width="1"/>
+    <rect x="41" y="196" width="4" height="11" fill="#0a0a0a" stroke="#333" stroke-width="0.6"/>
+    <rect x="115" y="196" width="4" height="11" fill="#0a0a0a" stroke="#333" stroke-width="0.6"/></g>
+
+    <!-- tyre smoke off the rear -->
+    <g class="smoke">
+      <circle cx="20" cy="205" r="16" fill="#999990"/>
+      <circle cx="8" cy="195" r="12" fill="#888880"/>
+    </g>
+    <g class="smoke" style="animation-delay:-0.3s">
+      <circle cx="140" cy="205" r="16" fill="#999990"/>
+      <circle cx="152" cy="195" r="12" fill="#888880"/>
+    </g>
+  </g>
+</g>
+
+<text x="200" y="30" text-anchor="middle" font-size="11" letter-spacing="3" fill="#888880">CORNER &amp; DRIFT</text>
+</svg>
+    </div>
+
+    <div class="controls">
+      <button class="pill" id="playPauseBtn">⏸ PAUSE</button>
+      <button class="pill" id="replayBtn">↻ REPLAY</button>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Speed</span>
+        <button class="speed-btn" data-speed="0.25">0.25×</button>
+        <button class="speed-btn" data-speed="0.5">0.5×</button>
+        <button class="speed-btn active" data-speed="1">1×</button>
+        <button class="speed-btn" data-speed="2">2×</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <p class="caption" id="caption"><b>Pit stop — side view.</b> Jack goes in, gun off, wheel swap, gun on, lollipop up, launch. Six-second loop, timed like a real 2.3s stop.</p>
+
+  <div class="grid-note">
+    <div class="note-card">
+      <h3>Wheel change</h3>
+      <p>Side and top views of the same four-tyre change, choreographed against a realistic ~2.3s stationary time.</p>
+    </div>
+    <div class="note-card">
+      <h3>Passing &amp; arriving</h3>
+      <p>The launch phase of the pit-stop clips and the flat-out fly-by cover the car arriving, passing, and leaving.</p>
+    </div>
+    <div class="note-card">
+      <h3>Turning &amp; drifting</h3>
+      <p>The corner sequence pushes the rear tyres past the limit — steering angle, tyre smoke, and fading skid marks.</p>
+    </div>
+    <div class="note-card">
+      <h3>Built for the README</h3>
+      <p>Every clip here is the exact SVG embedded in <a href="https://github.com/claudialbombin/pitwall-simulator#readme" style="color:var(--blue)">the project README</a> — it animates the same way on GitHub.</p>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Pitwall — stochastic F1 pit strategy · <a href="https://github.com/claudialbombin/pitwall-simulator">github.com/claudialbombin/pitwall-simulator</a>
+</footer>
+
+<script>
+(function(){
+  var captions = {
+    'pitstop-side': '<b>Pit stop — side view.</b> Jack goes in, gun off, wheel swap, gun on, lollipop up, launch. Six-second loop, timed like a real 2.3s stop.',
+    'pitstop-top': '<b>Pit stop — top view.</b> All four corners change at once — watch the gun pulses and the crew ring light up together, then the launch trail.',
+    'flyby': '<b>Flat out.</b> A quick 2.6s loop of the car passing at speed: spinning wheels, scrolling kerb, motion streaks.',
+    'corner-drift': '<b>Corner &amp; drift.</b> Rear tyres turned out past the apex, smoke off the rears, skid marks fading behind — oversteer through a fast right-hander.'
+  };
+  var partLabels = {
+    frontwing:'Front wing', rearwing:'Rear wing', halo:'Halo & cockpit',
+    sidepod:'Sidepod', gun:'Wheel gun', wheel:'Wheels', number:'Number board'
+  };
+
+  var stages   = document.querySelectorAll('.stage');
+  var buttons  = document.querySelectorAll('.scenario-btn');
+  var legend   = document.getElementById('legend');
+  var caption  = document.getElementById('caption');
+  var playBtn  = document.getElementById('playPauseBtn');
+  var replayBtn= document.getElementById('replayBtn');
+  var speedBtns= document.querySelectorAll('.speed-btn');
+
+  var currentSpeed = 1;
+  var paused = false;
+
+  function activeStage(){ return document.querySelector('.stage.active'); }
+
+  function anims(el){
+    if(!el || !el.getAnimations) return [];
+    try { return el.getAnimations({subtree:true}); } catch(e){ return []; }
+  }
+
+  function buildLegend(){
+    legend.innerHTML = '';
+    var el = activeStage();
+    if(!el) return;
+    var parts = el.querySelectorAll('[data-part]');
+    var seen = {};
+    parts.forEach(function(p){
+      var key = p.getAttribute('data-part');
+      if(seen[key]) return;
+      seen[key] = true;
+      var chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.textContent = partLabels[key] || key;
+      chip.addEventListener('mouseenter', function(){
+        chip.classList.add('on');
+        el.querySelectorAll('[data-part="'+key+'"]').forEach(function(n){ n.classList.add('hl'); });
+      });
+      chip.addEventListener('mouseleave', function(){
+        chip.classList.remove('on');
+        el.querySelectorAll('[data-part="'+key+'"]').forEach(function(n){ n.classList.remove('hl'); });
+      });
+      legend.appendChild(chip);
+    });
+  }
+
+  function applySpeed(mult){
+    currentSpeed = mult;
+    anims(activeStage()).forEach(function(a){ a.playbackRate = mult; });
+  }
+
+  function showScenario(name){
+    stages.forEach(function(s){ s.classList.toggle('active', s.dataset.scenario === name); });
+    buttons.forEach(function(b){ b.classList.toggle('active', b.dataset.scenario === name); });
+    caption.innerHTML = captions[name] || '';
+    applySpeed(currentSpeed);
+    if(paused){ anims(activeStage()).forEach(function(a){ a.pause(); }); }
+    buildLegend();
+  }
+
+  buttons.forEach(function(b){
+    b.addEventListener('click', function(){ showScenario(b.dataset.scenario); });
+  });
+
+  playBtn.addEventListener('click', function(){
+    paused = !paused;
+    anims(activeStage()).forEach(function(a){ paused ? a.pause() : a.play(); });
+    playBtn.textContent = paused ? '▶ PLAY' : '⏸ PAUSE';
+  });
+
+  replayBtn.addEventListener('click', function(){
+    var el = activeStage();
+    if(!el) return;
+    el.classList.remove('active');
+    void el.offsetWidth;
+    el.classList.add('active');
+    applySpeed(currentSpeed);
+    if(paused){ anims(el).forEach(function(a){ a.pause(); }); }
+  });
+
+  speedBtns.forEach(function(b){
+    b.addEventListener('click', function(){
+      speedBtns.forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      applySpeed(parseFloat(b.dataset.speed));
+    });
+  });
+
+  buildLegend();
+})();
+</script>
+
+</body>
+</html>

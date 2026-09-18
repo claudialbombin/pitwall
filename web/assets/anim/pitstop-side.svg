@@ -1,0 +1,196 @@
+<svg viewBox="0 0 480 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated side-view F1 pit stop: wheel change and launch">
+<title>Pit stop — side view</title>
+<defs>
+  <style><![CDATA[
+    :root{ --dur: 6s; }
+    .bg{ fill:#080808; }
+    .tarmac{ fill:#111114; }
+    .box-line{ stroke:#f5c400; stroke-width:2; opacity:0.55; }
+    .body-fill{ fill:#e8220a; }
+    .dark{ fill:#0a0a0a; }
+    .carbon{ fill:#111111; }
+    .rim{ fill:#1c1c1c; stroke:#444; stroke-width:1.5; }
+    .tyre{ fill:#111111; stroke:#2a2a2a; stroke-width:2; }
+    .accent{ stroke:#f5c400; stroke-width:2; fill:none; }
+    text{ font-family: 'DM Mono', 'Courier New', monospace; }
+
+    #car{ animation: launch var(--dur) cubic-bezier(.5,0,.2,1) infinite; }
+    @keyframes launch{
+      0%        { transform: translate(0,0); opacity:1; }
+      60%       { transform: translate(0,0); opacity:1; }
+      70%       { transform: translate(2px,1px); opacity:1; }
+      82%       { transform: translate(210px,0); opacity:1; }
+      86%       { transform: translate(560px,0); opacity:0; }
+      100%      { transform: translate(560px,0); opacity:0; }
+    }
+
+    #jack{ animation: jackAnim var(--dur) linear infinite; transform-origin: 340px 210px; }
+    @keyframes jackAnim{
+      0%, 8%    { opacity:0; transform: translateY(10px); }
+      12%, 54%  { opacity:1; transform: translateY(0); }
+      60%,100%  { opacity:0; transform: translateY(10px); }
+    }
+
+    #carLift{ animation: liftAnim var(--dur) ease-in-out infinite; }
+    @keyframes liftAnim{
+      0%, 9%    { transform: translateY(0); }
+      13%, 55%  { transform: translateY(-7px); }
+      59%,100%  { transform: translateY(0); }
+    }
+
+    #wheelOld{ animation: wheelOffAnim var(--dur) ease-in infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes wheelOffAnim{
+      0%, 15%  { transform: translate(0,0) rotate(0deg); opacity:1; }
+      29%      { transform: translate(6px,34px) rotate(80deg); opacity:0; }
+      100%     { transform: translate(6px,34px) rotate(80deg); opacity:0; }
+    }
+
+    #wheelNew{ animation: wheelOnAnim var(--dur) ease-out infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes wheelOnAnim{
+      0%, 35%  { transform: translate(-6px,34px) rotate(-40deg); opacity:0; }
+      49%,58%  { transform: translate(0,0) rotate(0deg); opacity:1; }
+      68%      { transform: translate(0,0) rotate(140deg); opacity:1; }
+      80%,100% { transform: translate(0,0) rotate(140deg); opacity:1; }
+    }
+
+    #gun{ animation: gunAnim var(--dur) steps(2,end) infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes gunAnim{
+      0%,13%    { opacity:0; }
+      15%,29%   { opacity:1; }
+      30%,35%   { opacity:0; }
+      36%,49%   { opacity:1; }
+      50%,100%  { opacity:0; }
+    }
+    #gunBit{ animation: gunSpin 0.12s linear infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes gunSpin{ to{ transform: rotate(360deg); } }
+
+    .crew{ animation: crewAnim var(--dur) ease-in-out infinite; }
+    @keyframes crewAnim{
+      0%,12%   { opacity:0; transform: translateY(6px); }
+      16%,48%  { opacity:1; transform: translateY(0); }
+      53%,100% { opacity:0; transform: translateY(6px); }
+    }
+
+    #smoke circle{ animation: smokeAnim var(--dur) ease-out infinite; }
+    @keyframes smokeAnim{
+      0%,79%   { opacity:0; transform: scale(0.3) translate(0,0); }
+      84%      { opacity:0.55; }
+      98%      { opacity:0; transform: scale(2.2) translate(-30px,-10px); }
+      100%     { opacity:0; transform: scale(0.3) translate(0,0); }
+    }
+
+    #streaks{ animation: streakAnim var(--dur) linear infinite; }
+    @keyframes streakAnim{
+      0%,78%  { opacity:0; }
+      80%,90% { opacity:0.8; }
+      93%,100%{ opacity:0; }
+    }
+
+    #timer{ animation: timerAnim var(--dur) steps(1,end) infinite; }
+    @keyframes timerAnim{
+      0%,49%   { opacity:0; }
+      50%,60%  { opacity:1; }
+      61%,100% { opacity:0; }
+    }
+
+    #frontWheel{ animation: frontSpin var(--dur) linear infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes frontSpin{
+      0%,78%   { transform: rotate(0deg); }
+      88%,100% { transform: rotate(720deg); }
+    }
+  ]]></style>
+</defs>
+
+<rect class="bg" width="480" height="220"/>
+<rect class="tarmac" x="0" y="188" width="480" height="32"/>
+<line class="box-line" x1="0" y1="188" x2="480" y2="188"/>
+<line class="box-line" x1="60" y1="188" x2="60" y2="220"/>
+<line class="box-line" x1="420" y1="188" x2="420" y2="220"/>
+
+<g id="streaks">
+  <line x1="20" y1="150" x2="90" y2="150" stroke="#888880" stroke-width="2"/>
+  <line x1="10" y1="165" x2="100" y2="165" stroke="#888880" stroke-width="2"/>
+  <line x1="25" y1="180" x2="85" y2="180" stroke="#888880" stroke-width="2"/>
+</g>
+
+<g id="smoke">
+  <circle cx="330" cy="196" r="10" fill="#888880"/>
+  <circle cx="336" cy="190" r="8" fill="#666660"/>
+  <circle cx="322" cy="192" r="7" fill="#777770"/>
+</g>
+
+<g id="jack">
+  <polygon points="335,206 350,206 342,182" fill="#f5c400"/>
+  <rect x="340" y="204" width="4" height="6" fill="#333"/>
+</g>
+
+<g id="car">
+  <g id="carLift">
+    <!-- front wing -->
+    <g data-part="frontwing">
+    <rect x="14" y="182" width="38" height="4" class="carbon"/>
+    <rect x="14" y="178" width="3" height="10" fill="#3a3a3a"/>
+    <rect x="49" y="178" width="3" height="10" fill="#3a3a3a"/>
+    </g>
+
+    <!-- rear wing -->
+    <g data-part="rearwing">
+    <rect x="316" y="150" width="4" height="12" fill="#333"/>
+    <path d="M300,144 L334,138 L334,150 L300,152 Z" class="carbon" stroke="#e8e8e2" stroke-width="1"/>
+    <rect x="331" y="132" width="4" height="20" fill="#0a0a0a" stroke="#333" stroke-width="0.6"/>
+    </g>
+
+    <!-- body -->
+    <path d="M24,188 C34,188 42,184 50,178 L69,168 C94,156 132,152 164,152
+             C186,152 204,150 220,150 C236,150 252,152 264,156
+             C278,160 289,169 294,178 L298,186 L298,189 L24,189 Z"
+          class="body-fill" stroke="#0a0a0a" stroke-width="1"/>
+
+    <!-- sidepod + halo + cockpit -->
+    <g data-part="sidepod"><path d="M138,152 C140,134 162,124 182,124 C202,124 215,133 219,150" class="body-fill" stroke="#0a0a0a" stroke-width="1"/></g>
+    <g data-part="halo"><path d="M162,130 C166,116 196,116 201,131" fill="none" class="carbon" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="180" cy="137" rx="11" ry="6.5" class="dark"/></g>
+
+    <line x1="69" y1="168" x2="264" y2="156" class="accent"/>
+
+    <g id="rearWheel" data-part="wheel">
+      <g transform="translate(300,188)">
+        <g id="wheelOld">
+          <circle r="21" class="tyre"/>
+          <circle r="9" class="rim"/>
+          <circle r="2" fill="#444"/>
+        </g>
+      </g>
+      <g transform="translate(300,188)">
+        <g id="wheelNew">
+          <circle r="21" class="tyre"/>
+          <circle r="9" class="rim"/>
+          <circle r="2" fill="#444"/>
+        </g>
+      </g>
+      <g id="gun" data-part="gun" transform="translate(300,188)">
+        <rect x="9" y="-4" width="20" height="8" rx="2" fill="#888880"/>
+        <g id="gunBit"><circle r="5" fill="#f5c400"/></g>
+      </g>
+    </g>
+
+    <g transform="translate(96,188)" data-part="wheel">
+      <g id="frontWheel">
+        <circle r="17" class="tyre"/>
+        <circle r="7.5" class="rim"/>
+        <circle r="1.8" fill="#444"/>
+      </g>
+    </g>
+  </g>
+</g>
+
+<g class="crew">
+  <ellipse cx="270" cy="176" rx="7" ry="11" fill="#4a9eff"/>
+  <circle cx="270" cy="162" r="5" fill="#e8e8e2"/>
+  <ellipse cx="332" cy="176" rx="7" ry="11" fill="#4a9eff"/>
+  <circle cx="332" cy="162" r="5" fill="#e8e8e2"/>
+</g>
+
+<text id="timer" x="240" y="30" text-anchor="middle" font-size="22" fill="#00e87a" font-weight="700">2.31s</text>
+<text x="240" y="205" text-anchor="middle" font-size="10" letter-spacing="2" fill="#888880">PIT STOP — SIDE VIEW</text>
+</svg>
