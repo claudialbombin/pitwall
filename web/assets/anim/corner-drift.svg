@@ -43,7 +43,7 @@
   ]]></style>
 </defs>
 
-<rect width="400" height="400" fill="#080808"/>
+<rect width="400" height="400" fill="#ffffff"/>
 
 <!-- track: a wide grey band sweeping through the corner -->
 <path d="M-20,-20 C 60,-20 140,40 190,120 C 230,185 280,260 420,300 L 420,420 C 260,380 190,300 140,220 C 90,140 20,70 -20,60 Z"
@@ -59,7 +59,7 @@
   <rect x="222" y="168" width="16" height="8" transform="rotate(35 230 172)"/>
   <rect x="239" y="186" width="16" height="8" transform="rotate(35 247 190)"/>
 </g>
-<g fill="#e8e8e2">
+<g fill="#f0f0ec">
   <rect x="215" y="160" width="16" height="8" transform="rotate(35 223 164)"/>
   <rect x="232" y="178" width="16" height="8" transform="rotate(35 240 182)"/>
 </g>
