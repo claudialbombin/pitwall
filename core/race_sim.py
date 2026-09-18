@@ -251,13 +251,21 @@ class RaceSimulator:
 
         for i in range(n_runs):
             # Primary sample
-            child_rng = np.random.default_rng(rng.integers(0, 2**31))
+            seed_i = int(rng.integers(0, 2**31))
+            child_rng = np.random.default_rng(seed_i)
             result = self._simulate_race(child_rng, starting_position, starting_compound)
             results.append(result)
 
             if use_antithetic:
-                # Antithetic sample: flip all uniform draws
-                antithetic_rng = _AntitheticsRNG(child_rng)
+                # Antithetic sample: re-seed a *fresh* generator with the same
+                # seed_i so it draws the exact same underlying uniform
+                # sequence as the primary run, then flip every draw (1-u).
+                # Reusing `child_rng` itself (already advanced by the primary
+                # run above) would give the antithetic run an unrelated,
+                # independent stream instead of the complementary one the
+                # variance-reduction technique depends on.
+                antithetic_source = np.random.default_rng(seed_i)
+                antithetic_rng = _AntitheticsRNG(antithetic_source)
                 result_anti = self._simulate_race(
                     antithetic_rng,
                     starting_position,
@@ -390,14 +398,22 @@ class RaceSimulator:
         Simple heuristic strategy for comparison baseline.
 
         Rules:
-          1. If SC active and haven't pitted → pit on Medium
-          2. If tyre age > 25 and haven't pitted → pit on Hard
-          3. Otherwise stay out
+          1. If SC active and haven't pitted at all yet → pit on Medium
+          2. If tyre age > 25 and fewer than 2 stops taken → pit on Hard
+             (applies to every stint, not just the first, so a long race
+             can take a second stop instead of running one set of tyres
+             past the model's valid age range — capped at 2 stops to match
+             the MDP's own action space, see core/mdp.py State.pit_used)
+          3. Mandatory stop on the penultimate lap if never pitted
+          4. Otherwise stay out
         """
         if sc_active and car.pit_count == 0:
             return Action.PIT_MEDIUM
 
-        if car.tyre_age > 25 and car.pit_count == 0:
+        # Capped at 2 stops (pit_count < 2) to stay inside the MDP model's
+        # own action space, which only ever allows up to 2 pit stops
+        # (State.pit_used in {0,1,2} — see core/mdp.py).
+        if car.tyre_age > 25 and car.pit_count < 2:
             return Action.PIT_HARD
 
         # Mandatory stop on penultimate lap if not yet served
