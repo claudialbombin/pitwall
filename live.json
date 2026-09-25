@@ -1,7 +1,7 @@
 {
   "circuit": "baku",
   "display_name": "Azerbaijan Grand Prix",
-  "session_type": "FP1",
+  "session_type": "FP3",
   "current_lap": 0,
   "total_laps": 51,
   "laps_remaining": 51,
@@ -10,5 +10,5 @@
   "sc_active": false,
   "drivers": [],
   "live": false,
-  "generated_at": "2026-09-24T10:20:04.443282+00:00"
+  "generated_at": "2026-09-25T10:13:21.265455+00:00"
 }
