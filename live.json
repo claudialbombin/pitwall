@@ -1,7 +1,7 @@
 {
   "circuit": "sakhir",
   "display_name": "Bahrain Grand Prix",
-  "session_type": "FP3",
+  "session_type": "R",
   "current_lap": 0,
   "total_laps": 57,
   "laps_remaining": 57,
@@ -10,5 +10,5 @@
   "sc_active": false,
   "drivers": [],
   "live": false,
-  "generated_at": "2026-10-03T05:43:32.202126+00:00"
+  "generated_at": "2026-10-04T08:57:50.540976+00:00"
 }
