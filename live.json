@@ -1,7 +1,7 @@
 {
   "circuit": "marina_bay",
   "display_name": "Singapore Grand Prix",
-  "session_type": "Q",
+  "session_type": "R",
   "current_lap": 0,
   "total_laps": 62,
   "laps_remaining": 62,
@@ -10,5 +10,5 @@
   "sc_active": false,
   "drivers": [],
   "live": false,
-  "generated_at": "2026-10-10T13:27:33.360885+00:00"
+  "generated_at": "2026-10-11T15:10:19.062479+00:00"
 }
