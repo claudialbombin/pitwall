@@ -1,14 +1,14 @@
 {
-  "circuit": "marina_bay",
-  "display_name": "Singapore Grand Prix",
-  "session_type": "R",
+  "circuit": "cota",
+  "display_name": "United States Grand Prix",
+  "session_type": "FP1",
   "current_lap": 0,
-  "total_laps": 62,
-  "laps_remaining": 62,
+  "total_laps": 56,
+  "laps_remaining": 56,
   "track_status": "1",
   "track_status_label": "green",
   "sc_active": false,
   "drivers": [],
   "live": false,
-  "generated_at": "2026-10-11T15:10:19.062479+00:00"
+  "generated_at": "2026-10-23T19:04:06.695687+00:00"
 }
