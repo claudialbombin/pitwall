@@ -1,7 +1,7 @@
 {
   "circuit": "cota",
   "display_name": "United States Grand Prix",
-  "session_type": "FP3",
+  "session_type": "Q",
   "current_lap": 0,
   "total_laps": 56,
   "laps_remaining": 56,
@@ -10,5 +10,5 @@
   "sc_active": false,
   "drivers": [],
   "live": false,
-  "generated_at": "2026-10-24T18:53:34.448295+00:00"
+  "generated_at": "2026-10-24T21:16:19.999307+00:00"
 }
