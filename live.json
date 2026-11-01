@@ -1,14 +1,14 @@
 {
-  "circuit": "cota",
-  "display_name": "United States Grand Prix",
+  "circuit": "mexico_city",
+  "display_name": "Mexico City Grand Prix",
   "session_type": "R",
   "current_lap": 0,
-  "total_laps": 56,
-  "laps_remaining": 56,
+  "total_laps": 71,
+  "laps_remaining": 71,
   "track_status": "1",
   "track_status_label": "green",
   "sc_active": false,
   "drivers": [],
   "live": false,
-  "generated_at": "2026-10-25T22:17:49.891722+00:00"
+  "generated_at": "2026-11-01T18:44:46.671104+00:00"
 }
