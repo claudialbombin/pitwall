@@ -2,8 +2,16 @@
 <p align="center"><b>When do you pit? A stochastic answer.</b></p>
 
 <p align="center">
-  <a href="https://github.com/claudialbombin/pitwall-simulator/actions/workflows/ci.yml"><img src="https://github.com/claudialbombin/pitwall-simulator/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
-  <a href="https://github.com/claudialbombin/pitwall-simulator/actions/workflows/deploy.yml"><img src="https://github.com/claudialbombin/pitwall-simulator/actions/workflows/deploy.yml/badge.svg" alt="Deploy status"></a>
+  <b><a href="https://claudialbombin.github.io/pitwall/">▶ Live site</a></b> ·
+  <a href="https://claudialbombin.github.io/pitwall/simulator.html">Simulator</a> ·
+  <a href="https://claudialbombin.github.io/pitwall/explainer.html">The math</a> ·
+  <a href="https://claudialbombin.github.io/pitwall/live.html">Live dashboard</a> ·
+  <a href="paper/paper.pdf">Paper (PDF)</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/claudialbombin/pitwall/actions/workflows/ci.yml"><img src="https://github.com/claudialbombin/pitwall/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="https://github.com/claudialbombin/pitwall/actions/workflows/deploy.yml"><img src="https://github.com/claudialbombin/pitwall/actions/workflows/deploy.yml/badge.svg" alt="Deploy status"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="MIT license"></a>
 </p>
@@ -186,15 +194,15 @@ The one mainstream live-timing provider for hobby projects ([OpenF1](https://ope
 
 </details>
 
-See [`live/README.md`](live/README.md) for the full write-up, and the [live dashboard](https://claudialbombin.github.io/pitwall-simulator/live.html) 🔴 to watch it during a session.
+See [`live/README.md`](live/README.md) for the full write-up, and the [live dashboard](https://claudialbombin.github.io/pitwall/live.html) 🔴 to watch it during a session.
 
 ## ⚙️ Installation
 
 Requires Python ≥ 3.10.
 
 ```bash
-git clone https://github.com/claudialbombin/pitwall-simulator.git
-cd pitwall-simulator
+git clone https://github.com/claudialbombin/pitwall.git
+cd pitwall
 pip install -e .
 
 # for development (tests, linting, type-checking)
@@ -211,6 +219,8 @@ pip install -e ".[live]"
 ```bash
 pitwall-fetch
 ```
+
+The raw FastF1 cache (about 400 MB) is not stored in the repo; this command downloads it into `data/raw/`. The processed tables in `data/processed/` are committed, so notebooks 01 and 02 run without the download; the 2023 backtest in notebook 03 needs it.
 
 **Solve the MDP for a circuit** (real usage, from `core/solver.py`'s own docstring):
 
@@ -241,10 +251,10 @@ Explore `core/` directly — every module's docstring walks through the theory b
 
 The `web/` directory is a static site (deployed via `.github/workflows/deploy.yml`) with:
 
-- 🏎️ **[Simulator](https://claudialbombin.github.io/pitwall-simulator/simulator.html)** — run the MDP interactively against a chosen circuit and tyre allocation
-- 🧮 **[The Math](https://claudialbombin.github.io/pitwall-simulator/explainer.html)** — the derivations above, walked through visually
-- 📡 **[Live](https://claudialbombin.github.io/pitwall-simulator/live.html)** — the live-timing dashboard
-- 🛞 **[Garage](https://claudialbombin.github.io/pitwall-simulator/garage.html)** — the four animations above, playable interactively: pick a scenario, control playback speed, hover a part (front wing, halo, sidepod, wheel gun…) to highlight it
+- 🏎️ **[Simulator](https://claudialbombin.github.io/pitwall/simulator.html)** — run the MDP interactively against a chosen circuit and tyre allocation
+- 🧮 **[The Math](https://claudialbombin.github.io/pitwall/explainer.html)** — the derivations above, walked through visually
+- 📡 **[Live](https://claudialbombin.github.io/pitwall/live.html)** — the live-timing dashboard
+- 🛞 **[Garage](https://claudialbombin.github.io/pitwall/garage.html)** — the four animations above, playable interactively: pick a scenario, control playback speed, hover a part (front wing, halo, sidepod, wheel gun…) to highlight it
 
 ## 📄 Paper
 

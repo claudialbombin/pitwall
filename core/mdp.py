@@ -84,7 +84,7 @@ standard technique in approximate dynamic programming and introduces bounded
 approximation error that we quantify in the analysis notebooks.
 
 Author: Claudia Maria Lopez Bombin
-GitHub: https://github.com/claudialbombin/pitwall-simulator
+GitHub: https://github.com/claudialbombin/pitwall
 License: MIT
 
 References:

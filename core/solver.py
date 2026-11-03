@@ -59,7 +59,7 @@ fitted value function approximation using a neural network (solver_approx.py).
 This trades exactness for scalability — see that module for details.
 
 Author: Claudia Maria Lopez Bombin
-GitHub: https://github.com/claudialbombin/pitwall-simulator
+GitHub: https://github.com/claudialbombin/pitwall
 License: MIT
 
 References:

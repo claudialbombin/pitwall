@@ -346,7 +346,7 @@ class RaceSimulator:
                 car.tyre_age += 1
 
             # --- Compute lap time ---
-            degradation = float(self.tyre_model.predict(car.compound, car.tyre_age))
+            degradation = np.ravel(self.tyre_model.predict(car.compound, car.tyre_age))[0].item()
             track_evo_gain += self.circuit.track_evo_per_lap
 
             lap_time = (
