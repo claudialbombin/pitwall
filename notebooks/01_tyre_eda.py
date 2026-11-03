@@ -378,23 +378,23 @@ print("EDA SUMMARY")
 print("=" * 60)
 print(f"""
 Key findings:
-  1. The cliff is REAL and statistically visible in clean-air laps.
-     The degradation rate shows a clear peak (inflection point of the
-     cumulative curve) at approximately:
+  1. The fitted curves below do not isolate a clear cliff.
+     Compare the fitted parameters with results/01_degradation_rate.png.
+     Earlier expected ranges, not confirmed by this fit:
        SOFT:   lap 14-18
        MEDIUM: lap 24-30
        HARD:   lap 38-44
 
-  2. The Weibull model fits well (R² > 0.92 for all three compounds).
-     The shape parameter k > 1 in all cases, confirming accelerating
-     degradation — exactly what the physics predicts.
+  2. The Weibull model fits poorly (negative R² for all three compounds).
+     Several parameters sit at their bounds (k=1 for SOFT and MEDIUM), so
+     accelerating degradation is not confirmed by this fit.
 
-  3. Circuit variation is significant. Monaco and Singapore show
-     earlier cliffs (abrasive surfaces); Monza shows later cliffs
-     (low-stress, fast circuit). Per-circuit calibration is warranted.
+  3. Circuit variation is plotted in results/01_circuit_variation.png.
+     Any earlier or later cliff by circuit is not quantified here,
+     so per-circuit calibration remains to be justified.
 
-  4. Temperature matters (when data available). Every 8°C rise in
-     track temperature roughly moves the cliff ~2 laps earlier.
+  4. Temperature effects are plotted when data is available. The rule of
+     thumb of ~2 laps earlier per 8°C rise is not verified here.
 
 Next: 02_safety_car_stats.ipynb — model the SC deployment distribution.
 """)

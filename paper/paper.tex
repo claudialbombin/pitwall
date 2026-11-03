@@ -410,6 +410,10 @@ The Beta-Binomial conjugacy yields a closed-form posterior---no MCMC required.
 The posterior mean $\E[p_\lap \mid k_\lap] = (\alpha+k_\lap)/(\alpha+\beta+n)$
 is our point estimate; the variance provides uncertainty bounds.
 
+On held-out test data, the saved run gives an MAE of 4.05 percentage points, and
+the 90\% credible intervals contain the observed frequency in only 8\% of laps.
+The intervals are therefore far too narrow and the model is not yet well calibrated.
+
 
 \subsection{Duration: Geometric Distribution}
 
@@ -417,8 +421,8 @@ Once deployed, SC duration is modelled as $\text{Geometric}(p_{\text{clear}})$:
 \begin{equation}
   \Prob(\text{duration} = d) = p_{\text{clear}}(1 - p_{\text{clear}})^{d-1}
 \end{equation}
-MLE from 2018--2023 data: $\hat{p}_{\text{clear}} = 0.29$
-(mean duration $\approx 3.4$ laps).
+MLE from the saved data: $\hat{p}_{\text{clear}} \approx 0.42$
+(mean duration $\approx 2.4$ laps).
 A Kolmogorov-Smirnov test fails to reject the Geometric fit ($p = 0.31$).
 
 \subsection{The Safety Car as an American Option}
@@ -567,7 +571,7 @@ equilibria), weather uncertainty integration, and extension to tyre allocation
 optimisation across a full race weekend.
 
 Full implementation, test suite, and interactive simulator:
-\href{https://claudialbombin.github.io/pitwall}{\texttt{claudialbombin.github.io/pitwall}}.
+\href{https://claudialbombin.github.io/pitwall-simulator}{\texttt{claudialbombin.github.io/pitwall-simulator}}.
 
 % ── REFERENCES ───────────────────────────────────────────────────────────────
 \section*{References}

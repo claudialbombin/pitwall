@@ -10,9 +10,9 @@ what real F1 teams actually did.
 The question: **would our model have made better pit stop decisions than
 Mercedes, Red Bull, and Ferrari in 2023?**
 
-The answer (spoiler): yes, in 71% of cases, by an average of 4.2 seconds.
-That is the headline number in the README. This notebook shows exactly
-how we get there, why it is credible, and where the model still fails.
+The answer so far: not clearly. It is faster in 53% of 57 comparisons at 3 circuits,
+by a mean modelled 0.2 seconds, and slower than a baseline in simulation. This notebook
+shows how those numbers are produced and where the model still fails.
 
 ### Methodology
 
@@ -452,8 +452,8 @@ print("Dark red regions = high time loss expected. Green = low. Pit when your st
 ## Summary
 
 # %%
-mdp_win_rate = comp["MDPFaster"].mean() * 100 if len(comp) > 0 else 71.0
-mean_saving  = comp[comp["MDPFaster"]]["DeltaSeconds"].mean() if len(comp) > 0 else 4.2
+mdp_win_rate = comp["MDPFaster"].mean() * 100 if len(comp) > 0 else float("nan")
+mean_saving  = comp[comp["MDPFaster"]]["DeltaSeconds"].mean() if len(comp) > 0 else float("nan")
 
 print("=" * 60)
 print("POLICY ANALYSIS SUMMARY")
@@ -470,7 +470,7 @@ Monte Carlo (Silverstone, N=2000):
   Baseline mean race time:          {np.mean(base_times):.2f} min
   Std dev reduction:                {(1 - np.std(mdp_times)/np.std(base_times))*100:.0f}%
 
-Where the model outperforms most:
+Hypotheses to test (not established by these results):
   - Races with early safety cars (model correctly holds the SC option)
   - Circuits with pronounced degradation cliffs (SOFT at Monaco)
   - Multi-stop races where degradation compounds across stints
@@ -480,8 +480,8 @@ Where the model still struggles:
   - Unusual weather transitions (wet/dry boundary)
   - Tyre allocation constraints (team may not have fresh tyres)
 
-→ These numbers are the headline in the README.
-   This notebook is the audit trail that makes them credible.
+→ These numbers are the ones reported in the README.
+   This notebook is the audit trail behind them.
 """)
 
 # Save backtest to CSV

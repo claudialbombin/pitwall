@@ -648,11 +648,11 @@
   </div>
   <div class="metric">
     <div class="metric-val metric-accent3" id="m3">0<span class="unit">%</span></div>
-    <div class="metric-label">races where model outperforms team strategy</div>
+    <div class="metric-label">of 57 comparisons faster than real strategy (3 circuits)</div>
   </div>
   <div class="metric">
     <div class="metric-val" id="m4">0<span class="unit">s</span></div>
-    <div class="metric-label">average time saved per race (2023 backtest)</div>
+    <div class="metric-label">mean modelled delta (not observed race time)</div>
   </div>
 </div>
 
@@ -807,8 +807,8 @@
   const targets = [
     { id: 'm1', end: 10000, suffix: '', format: v => v.toLocaleString() },
     { id: 'm2', end: 13,    suffix: 'M', format: v => v.toFixed(0) + 'M' },
-    { id: 'm3', end: 71,    suffix: '%', format: v => Math.round(v) + '%' },
-    { id: 'm4', end: 4.2,   suffix: 's', format: v => v.toFixed(1) + 's' },
+    { id: 'm3', end: 53,    suffix: '%', format: v => Math.round(v) + '%' },
+    { id: 'm4', end: 0.2,   suffix: 's', format: v => v.toFixed(1) + 's' },
   ];
 
   function animateCounter(el, target, duration, format) {

@@ -151,7 +151,7 @@ Compared with real 2023 strategies at 3 circuits (`results/backtest_summary.csv`
 - ⏱️ **+0.20 seconds** mean modelled delta (+0.87 s when counted as faster, −0.54 s otherwise)
 - 🚩 Big differences by circuit: Monaco **85%** (+1.01 s), Silverstone **72%** (+0.08 s), Monza **0%** (−0.54 s)
 - 🧪 Monte Carlo at Silverstone (N = 2,000): MDP **81.73 min** vs. baseline **80.93 min**, i.e. **48 s slower**
-- ⚠️ Limits: deltas are modelled rather than observed, each circuit gets one recommended lap, and the Weibull fits have negative R² (see the paper)
+- ⚠️ Limits: deltas are modelled rather than observed, each circuit gets one recommended lap, the Weibull fits have negative R², and the safety-car 90% intervals cover only 8% of laps (see the paper)
 - 🛑 Pit-loss differs by circuit — a stop costs **22.0s at Monaco** vs. **23.4s at Monza** in the model (`core/mdp.py`, `PIT_LANE_DELTA`); real-world figures are close (Monaco's pit lane is famously short given the tight track, F1.com puts it nearer 19–20s and Monza nearer 24s — see `tests/test_mdp.py` for the ordering check against those published figures)
 
 <details>

@@ -673,7 +673,7 @@
   <div class="section-prose">
     <p class="s-label">// 07 · monte carlo validation</p>
     <div class="s-num">07</div>
-    <h2 class="s-title">10,000 races.<br>One policy.</h2>
+    <h2 class="s-title">Thousands of races.<br>One policy.</h2>
     <p class="s-body">
       The Bellman solver gives us the theoretically optimal policy.
       The Monte Carlo simulator asks: <em>how does that policy actually
@@ -686,10 +686,11 @@
       without doubling the compute.
     </p>
     <p class="s-body">
-      The backtest: apply the policy to actual 2023 race data. Compare our
-      recommended pit lap to what each team did. Result: the model
-      outperforms in <em>71% of races</em>, with a mean saving of <em>4.2 seconds</em>.
-      That's the number in the README.
+      The comparison: take real 2023 first stops at three circuits and compare
+      them with our recommended pit lap, using modelled time deltas. Result: the
+      model is faster in <em>53% of 57 comparisons</em>, by a mean of <em>0.2 seconds</em>,
+      with big differences by circuit. In the saved Silverstone simulation it is
+      <em>48 seconds slower</em> than a baseline heuristic, so this is not yet a proven edge.
     </p>
     <a href="https://github.com/claudialbombin/pitwall-simulator/blob/main/core/race_sim.py" target="_blank" class="s-link">View race_sim.py →</a>
   </div>
