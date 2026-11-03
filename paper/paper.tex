@@ -174,10 +174,12 @@ a Gaussian Process regression model with Mat\'{e}rn 5/2 kernel for tyre
 degradation --- returning a full posterior distribution over lap time delta ---
 and a Non-Homogeneous Poisson Process with Bayesian Beta-Binomial conjugate
 updating for safety car deployment probability. Monte Carlo simulation with
-antithetic variates validates the optimal policy across 10{,}000 stochastic
-race trajectories. Applied to the 2023 FIA Formula One World Championship,
-the MDP policy outperforms actual team strategies in \textbf{71\% of races},
-with a mean time saving of \textbf{4.2 seconds}. We further establish an exact
+antithetic variates evaluates the policy over stochastic race trajectories.
+Compared with 57 real driver strategies at three 2023 circuits using modelled
+time deltas, the policy is faster in \textbf{53\%} of comparisons, by a mean of
+\textbf{0.2 seconds}, with results differing sharply by circuit. In the saved
+Monte Carlo run at Silverstone it is 48 seconds slower on average than a baseline
+heuristic, so these results do not yet demonstrate a strategic advantage. We further establish an exact
 isomorphism between this framework and the American option optimal exercise
 problem (Snell envelope), demonstrating that pit stop timing and early option
 exercise are the same mathematical problem in different physical domains.
@@ -208,10 +210,10 @@ the canonical mathematical framework for sequential decision problems under
 uncertainty. The exact backward-induction solver guarantees globally optimal
 policy recovery. We contribute:
 \begin{enumerate}[leftmargin=*, itemsep=1pt, topsep=2pt]
-  \item A Weibull survival + Gaussian Process hybrid tyre model with calibrated uncertainty;
+  \item A Weibull survival + Gaussian Process hybrid tyre model;
   \item A Bayesian NHPP safety car model with closed-form conjugate updates;
   \item An exact isomorphism between pit stop timing and American option exercise;
-  \item An open-source implementation with full backtest against the 2023 season.
+  \item An open-source implementation with a partial comparison against 2023 strategies at three circuits.
 \end{enumerate}
 
 % ── 2. MDP FORMULATION ───────────────────────────────────────────────────────
@@ -345,13 +347,17 @@ dataset. Table~\ref{tab:weibull} reports results.
     Compound & $k$ & $\lambda$ & $D_0$ (s) & $\age_{\text{cliff}}$ & $R^2$ \\
     \midrule
     \rowcolor{rowalt}
-    SOFT   & 2.80 & 16.2 & 2.8 & $\approx 14$ & 0.961 \\
-    MEDIUM & 2.41 & 26.4 & 1.9 & $\approx 22$ & 0.948 \\
+    SOFT   & 1.00 & 5.0 & 0.77 & $0$ & $-0.162$ \\
+    MEDIUM & 1.00 & 60.0 & 1.61 & $0$ & $-0.067$ \\
     \rowcolor{rowalt}
-    HARD   & 2.03 & 40.1 & 1.2 & $\approx 34$ & 0.934 \\
+    HARD   & 3.55 & 60.0 & 1.79 & $\approx 55$ & $-0.057$ \\
     \bottomrule
   \end{tabular}
 \end{table}
+
+The negative $R^2$ values mean that the fitted curves explain less variance than
+a constant, and several parameters sit at their bounds. The parametric fit alone
+is therefore a weak description of the data, and no clear cliff is identified.
 
 \subsection{Gaussian Process Regression}
 
@@ -404,9 +410,6 @@ The Beta-Binomial conjugacy yields a closed-form posterior---no MCMC required.
 The posterior mean $\E[p_\lap \mid k_\lap] = (\alpha+k_\lap)/(\alpha+\beta+n)$
 is our point estimate; the variance provides uncertainty bounds.
 
-Calibration on held-out 2023 data (trained on 2021--2022) yields MAE of
-1.3 percentage points, with 91\% of observed frequencies within the 90\%
-credible interval---a well-calibrated model.
 
 \subsection{Duration: Geometric Distribution}
 
@@ -483,8 +486,9 @@ $R(s,a)$ and $P(s'|s,a)$ differ.
 
 \subsection{Simulation Design}
 
-We validate the optimal policy via $N = 10{,}000$ Monte Carlo race simulations
-per circuit. Each simulation independently samples SC events from the calibrated
+We evaluate the optimal policy via Monte Carlo race simulation. The simulator
+defaults to $N = 10{,}000$ runs; the saved results below use $N = 2{,}000$ at
+Silverstone. Each simulation independently samples SC events from the calibrated
 NHPP, tyre degradation noise from the GPR posterior, and gap dynamics from an
 empirical transition model.
 
@@ -498,33 +502,28 @@ the estimator variance:
   = \frac{\operatorname{Var}(f) + \operatorname{Cov}(f(u), f(1-u))}{2}
   < \frac{\operatorname{Var}(f)}{2}
 \end{equation}
-when $f$ is monotone in $u$. Empirically, antithetic variates reduce the
-standard error of the mean race time estimate by 38\% relative to naive
-Monte Carlo with the same compute budget.
+when $f$ is monotone in $u$.
 
 \subsection{Results}
 
 \begin{table}[!h]
   \centering
   \small
-  \caption{Monte Carlo results: MDP policy vs baseline heuristic.}
+  \caption{Monte Carlo results at Silverstone ($N = 2{,}000$): MDP policy vs baseline heuristic.}
   \label{tab:mc}
-  \setlength{\tabcolsep}{4pt}
-  \begin{tabular}{@{}lrrrc@{}}
+  \begin{tabular}{@{}lr@{}}
     \toprule
-    Circuit & MDP (s) & Baseline (s) & $\Delta$ (s) & Win \% \\
+    Policy & Mean race time (min) \\
     \midrule
-    \rowcolor{rowalt}
-    Silverstone & 4521.3 & 4525.8 & \textbf{+4.5} & 73\% \\
-    Monza       & 4388.7 & 4393.1 & \textbf{+4.4} & 69\% \\
-    \rowcolor{rowalt}
-    Monaco      & 6241.2 & 6244.9 & \textbf{+3.7} & 71\% \\
-    Spa         & 3892.4 & 3896.2 & \textbf{+3.8} & 70\% \\
-    \midrule
-    \textbf{Mean} & --- & --- & \textbf{+4.1} & \textbf{71\%} \\
+    MDP policy & 81.73 \\
+    Baseline heuristic & 80.93 \\
     \bottomrule
   \end{tabular}
 \end{table}
+
+The MDP policy is 48.1 seconds \emph{slower} on average than the baseline, with a
+5\% lower standard deviation of race time. This run does not show that the policy
+improves on the heuristic, and it covers one circuit only.
 
 % ── 7. BACKTEST ──────────────────────────────────────────────────────────────
 \section{2023 Season Backtest}
@@ -536,26 +535,32 @@ actual pit lap executed by each team, estimating the time delta:
   \Delta t = (\age_{\text{actual}} - \age_{\text{MDP}}) \cdot
   \frac{dD}{d\age}\bigg|_{\age = \bar{\age}}
 \end{equation}
-Across 22 races and all 10 teams ($N = 198$ comparisons): the MDP policy
-is faster in \textbf{71\%} of comparisons, with a mean saving of
-\textbf{4.2 seconds} when faster and a mean loss of 1.1 seconds when slower.
+Across 3 circuits ($N = 57$ driver comparisons, \texttt{results/backtest\_summary.csv}),
+the MDP policy is faster in \textbf{53\%} of comparisons. The mean delta is
+\textbf{+0.20 seconds} overall, +0.87 seconds when counted as faster and $-0.54$
+seconds otherwise. By circuit, it is faster in 85\% of comparisons at Monaco
+(mean +1.01 s), 72\% at Silverstone (+0.08 s) and 0\% at Monza ($-0.54$ s).
 
-\paragraph{Where the model outperforms most.}
-Races with early safety cars (the model correctly holds the SC option);
-circuits with pronounced degradation cliffs (SOFT at Monaco, wet Spa).
+These are modelled deltas, not observed race times. Each circuit uses a single
+recommended lap, computed for a medium-tyre car in fifth place, and the comparison
+uses each driver's first stop only. The results are indicative at most.
 
-\paragraph{Where it struggles.}
-Complex strategic battles (undercut dynamics not modelled); tyre allocation
-constraints; unusual weather transitions.
+\paragraph{Limitations.}
+Undercut dynamics and rival reactions are not modelled, nor are tyre allocation
+constraints or weather transitions. Driver, car and compound differences are not
+reflected in the single per-circuit recommendation.
 
 % ── 8. CONCLUSION ────────────────────────────────────────────────────────────
 \section{Conclusion}
 
 We have presented \textsc{pitwall}: a complete MDP-based framework for F1 pit
 stop optimisation with exact backward-induction solver, hybrid Weibull + GPR
-tyre model with calibrated uncertainty, Bayesian NHPP safety car model, and
-formal isomorphism with American option exercise. The 71\% win rate and 4.2s
-mean saving demonstrate genuine strategic value beyond heuristic team decisions.
+tyre model, Bayesian NHPP safety car model, and
+formal isomorphism with American option exercise. The evaluation
+is mixed: a small modelled gain against real strategies that varies by circuit,
+and a 48-second deficit against a baseline heuristic in simulation. Demonstrating
+strategic value would require a better tyre fit and a full-season backtest on
+observed race outcomes.
 
 Future work includes multi-agent formulations (rival team reactions as Nash
 equilibria), weather uncertainty integration, and extension to tyre allocation

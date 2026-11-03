@@ -12,7 +12,7 @@
 
 The fun part: the pit/stay decision turns out to be *mathematically the same problem* as deciding whether to exercise an American option early. Both boil down to "is what I get now better than the expected value of waiting?" — and both are solved the same way, working backwards from the end. So the machinery Wall Street uses to price early exercise on a derivative is, unmodified, the machinery that tells you when to bring an F1 car into the pits. 💸➡️🏎️
 
-> 🏆 **Backtested against the real 2023 season, this policy beats the strategy the actual team called in 71% of races, saving a mean of 4.2 seconds per race.**
+> 📊 **Honest status: against 57 real 2023 driver strategies at 3 circuits, the policy is faster in 53% of comparisons by a mean of 0.2 s (modelled, not observed, time). In the saved Monte Carlo run at Silverstone it is 48 s slower on average than a baseline heuristic, so this is not yet a proven strategy edge.**
 
 <details>
 <summary>📊 <b>The numbers, at a glance</b> (click to expand)</summary>
@@ -20,9 +20,10 @@ The fun part: the pit/stay decision turns out to be *mathematically the same pro
 
 | | |
 |---|---|
-| 🏆 Beats real 2023 team strategy in | **71%** of races |
-| ⏱️ Mean time saved per race | **4.2 seconds** |
-| 🎲 Monte Carlo trajectories per scenario | **10,000** (antithetic variates) |
+| 🏁 Faster than real 2023 strategy in | **53%** of 57 comparisons (3 circuits) |
+| ⏱️ Mean modelled delta | **+0.20 seconds** |
+| 🧪 Monte Carlo vs baseline (Silverstone) | **48 seconds slower** |
+| 🎲 Monte Carlo trajectories | **10,000** by default (antithetic variates); saved run uses **2,000** |
 | 🧮 State-space dimensions | lap × compound × tyre age × position × gaps × stops × SC flag |
 | 🛞 Compounds modelled | Soft, Medium, Hard, Intermediate, Wet |
 | 🚩 Circuits calibrated | Silverstone, Monza, Monaco, Spa |
@@ -84,7 +85,7 @@ A few real rows from `results/backtest_summary.csv` — 2023 Silverstone, actual
 | PER | Red Bull Racing | 29 | 26 | ✅ MDP faster by 0.18s |
 | LEC | Ferrari | 19 | 26 | ❌ Actual call was faster by 0.52s |
 
-Even the MDP loses sometimes — a real race has traffic, red flags, and driver-specific pace that the model doesn't see. It just wins more often than it loses, by a wider margin than it loses by.
+Even the MDP loses sometimes — a real race has traffic, red flags, and driver-specific pace that the model doesn't see. In this comparison it is faster slightly more often than not, and the result depends heavily on the circuit.
 
 </details>
 
@@ -102,7 +103,7 @@ $$V(s) = \min\Big(\underbrace{\text{PitCost}(s)}_{\text{pit now}},\ \underbrace{
 
 Backward induction from the final lap gives the optimal pit-lap policy for *every* reachable state in one pass. See `core/mdp.py` for the state-space design and `core/solver.py` for the backward-induction solver.
 
-**🛞 Tyre degradation.** Lap-time loss from tyre wear is modelled with a Weibull hazard, fitted per compound so that the degradation "cliff" — the point past which pace falls off sharply — lands at the empirically observed lap for that compound. A Gaussian Process (Matérn 5/2 kernel) is layered on top of that parametric fit to capture circuit- and temperature-dependent variation the Weibull curve alone misses. See `core/tyre_model.py`.
+**🛞 Tyre degradation.** Lap-time loss from tyre wear is modelled with a Weibull hazard, fitted per compound to look for a degradation "cliff" — the point past which pace falls off sharply. The saved fits are weak (negative R²) and find no clear cliff. A Gaussian Process (Matérn 5/2 kernel) is layered on top of that parametric fit to capture circuit- and temperature-dependent variation the Weibull curve alone misses. See `core/tyre_model.py`.
 
 <details>
 <summary>💻 <b>Real usage, straight from the docstring</b></summary>
@@ -122,7 +123,7 @@ cliff = model.cliff_lap(Compound.SOFT)
 
 **🚨 Safety car risk.** Safety car appearances are modelled as a non-homogeneous Poisson process (deployment timing) combined with a geometric distribution (duration) and a Bayesian layer that updates per-circuit deployment rate from historical data. That means a lap under safety-car risk is priced *correctly* into the pit/stay decision — since a pit stop taken under a safety car is nearly free in time lost. See `core/safety_car.py`.
 
-**🎲 Monte Carlo validation.** The policy is validated over 10,000 simulated race trajectories per scenario, using antithetic variates to reduce estimator variance for a given sample budget — i.e. more precision for the same compute. See `core/race_sim.py`.
+**🎲 Monte Carlo validation.** The policy is evaluated over simulated race trajectories (10,000 by default, 2,000 in the saved Silverstone run), using antithetic variates to reduce estimator variance for a given sample budget — i.e. more precision for the same compute. See `core/race_sim.py`.
 
 **💸 Isomorphism with quantitative finance.** The pit/stay decision is structurally the same problem as deciding whether to exercise an American option early: both compare an immediate, known payoff against the expected value of waiting under uncertainty, and both are solved with a Snell-envelope-style backward recursion. The paper works this correspondence through in full detail — it's the same reason optimal-stopping theory built for derivatives pricing carries over cleanly to a pit wall.
 
@@ -144,11 +145,14 @@ web/           🌐 the GitHub Pages site — simulator, explainer, live dashboa
 
 ## 📊 Results
 
-Backtested against the 2023 season (`results/backtest_summary.csv`, one row per driver per race — actual pit lap vs. MDP-recommended pit lap and the resulting time delta):
+Compared with real 2023 strategies at 3 circuits (`results/backtest_summary.csv`, one row per driver per race — actual pit lap vs. MDP-recommended pit lap and the modelled time delta):
 
-- 🏆 MDP policy faster than the actual strategy called on the pit wall in **71%** of races
-- ⏱️ **4.2 seconds** mean time saving per race across the backtest
-- 🚩 Consistent gains across circuits with very different pit-loss profiles — a stop costs **22.0s at Monaco** vs. **23.4s at Monza** in the model (`core/mdp.py`, `PIT_LANE_DELTA`); real-world figures are close (Monaco's pit lane is famously short given the tight track, F1.com puts it nearer 19–20s and Monza nearer 24s — see `tests/test_mdp.py` for the ordering check against those published figures)
+- 🏁 MDP policy faster than the actual first-stop lap in **53%** of 57 comparisons
+- ⏱️ **+0.20 seconds** mean modelled delta (+0.87 s when counted as faster, −0.54 s otherwise)
+- 🚩 Big differences by circuit: Monaco **85%** (+1.01 s), Silverstone **72%** (+0.08 s), Monza **0%** (−0.54 s)
+- 🧪 Monte Carlo at Silverstone (N = 2,000): MDP **81.73 min** vs. baseline **80.93 min**, i.e. **48 s slower**
+- ⚠️ Limits: deltas are modelled rather than observed, each circuit gets one recommended lap, and the Weibull fits have negative R² (see the paper)
+- 🛑 Pit-loss differs by circuit — a stop costs **22.0s at Monaco** vs. **23.4s at Monza** in the model (`core/mdp.py`, `PIT_LANE_DELTA`); real-world figures are close (Monaco's pit lane is famously short given the tight track, F1.com puts it nearer 19–20s and Monza nearer 24s — see `tests/test_mdp.py` for the ordering check against those published figures)
 
 <details>
 <summary>📈 <b>What's in results/</b> (click to expand)</summary>
