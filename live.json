@@ -1,14 +1,14 @@
 {
-  "circuit": "interlagos",
-  "display_name": "S\u00e3o Paulo Grand Prix",
-  "session_type": "R",
+  "circuit": "las_vegas",
+  "display_name": "Las Vegas Grand Prix",
+  "session_type": "FP2",
   "current_lap": 0,
-  "total_laps": 71,
-  "laps_remaining": 71,
+  "total_laps": 50,
+  "laps_remaining": 50,
   "track_status": "1",
   "track_status_label": "green",
   "sc_active": false,
   "drivers": [],
   "live": false,
-  "generated_at": "2026-11-08T18:56:26.840799+00:00"
+  "generated_at": "2026-11-21T04:09:58.857824+00:00"
 }
