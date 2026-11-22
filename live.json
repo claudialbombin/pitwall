@@ -1,7 +1,7 @@
 {
   "circuit": "las_vegas",
   "display_name": "Las Vegas Grand Prix",
-  "session_type": "FP2",
+  "session_type": "Q",
   "current_lap": 0,
   "total_laps": 50,
   "laps_remaining": 50,
@@ -10,5 +10,5 @@
   "sc_active": false,
   "drivers": [],
   "live": false,
-  "generated_at": "2026-11-21T04:09:58.857824+00:00"
+  "generated_at": "2026-11-22T03:34:46.915869+00:00"
 }
